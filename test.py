@@ -26,12 +26,14 @@ for tgt in targets:
 #images = flight.all_images()
 
 for image_file in images:
+#for i in range(1):
+#    image_file = images[0]
     filename = image_file.filename
     image = cv2.imread(filename[:-3] + 'jpg')
     imgs = filter_primary(image)
 
-    cv2.imshow('Display', image)
-    cv2.waitKey()
+#    cv2.imshow('Display', image)
+#    cv2.waitKey()
 
     for img in imgs:
         if(check_target(img)):
