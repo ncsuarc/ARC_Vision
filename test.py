@@ -7,13 +7,14 @@ import time
 cv2.namedWindow('Display', cv2.WINDOW_NORMAL)
 cv2.resizeWindow('Display', 1920, 1080)
 
-flight = ARC.Flight(157)
+#flight = ARC.Flight(95) #2015 Competition
+flight = ARC.Flight(157) #2016 Competition
 
 targets = flight.all_targets()
 images = []
 
 for tgt in targets:
-    if not ((tgt.target_type == 0) or (tgt.target_type == 1)):
+    if not ((tgt.target_type == 0) or (tgt.target_type == 1) or (tgt.target_type == None)):
         continue
     dist = 10
     while True:
@@ -22,13 +23,13 @@ for tgt in targets:
             break
         dist += 1
     images.extend(new_images)
-
 #images = flight.all_images()
 
 for image_file in images:
 #for i in range(1):
-#    image_file = images[0]
+#    image_file = images[5]
     filename = image_file.filename
+    print(filename)
     image = cv2.imread(filename[:-3] + 'jpg')
     imgs = filter_primary(image)
 

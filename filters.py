@@ -21,7 +21,9 @@ def filter_primary(image):
             roi = image[y:y+height, x:x+width]
             imgs.append(roi)
             cv2.drawContours(cnt_out, [cnt], 0, (255,255,255), 3)
-    dst = cv2.addWeighted(image,0.7,cnt_out,0.3,0)
+    
+    mask_rgb = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+    dst = cv2.addWeighted(image,0.7,mask_rgb,0.3,0)
     cv2.imshow('Display', dst)
     cv2.waitKey()
     
@@ -31,7 +33,13 @@ def check_target(image):
     kernel = np.ones((3,3), np.uint8)
     mask = color_mask(image)
     mask = cv2.erode(mask, kernel, iterations = 1)
+    
     m = cv2.moments(mask)
+
+    res = cv2.bitwise_and(image, image, mask=mask)
+#    cv2.imshow('Display', res)
+#    if(cv2.waitKey() == 115):
+#        cv2.imwrite("image.jpg", image)
     #Check that there is a substantial number of pixels present, rather than a handful of interesting specks of grass
     if m['m00'] > 1500:
         #Run KMeans with K=3 for grass, target, and character
@@ -45,12 +53,13 @@ def check_target(image):
         res = res.reshape((image.shape))
          
         mask = color_mask(res)
+        mask = cv2.erode(mask, kernel, iterations = 1)
+        mask = cv2.dilate(mask, kernel, iterations = 1)
 
         pts = cv2.findNonZero(mask)
         if pts == None:
             return False
-        rect = cv2.minAreaRect(cv2.findNonZero(mask))
-        
+        rect = cv2.minAreaRect(pts)
         
         box = cv2.boxPoints(rect)
         box = np.int0(box)
@@ -62,13 +71,9 @@ def check_target(image):
         else:
             ar = dist(tl, tr)/dist(tl, bl)        
         if (ar > 0.3) and (ar < 3) and (compactness > 900000) and (compactness < 2000000):
-            print(compactness)
-            res2 = cv2.bitwise_and(image, image, mask=mask)
-            cv2.drawContours(res2, [box], 0, (255,255,255), 2)
-            dst = cv2.addWeighted(res2,0.7,res,0.3,0)
-            cv2.imshow('Display', dst)
-            if(cv2.waitKey() == 115):
-                cv2.imwrite("image.jpg", image)
+#            print(compactness)
+#            cv2.drawContours(res2, [box], 0, (255,255,255), 2)
+#            dst = cv2.addWeighted(res2,0.7,res,0.3,0)
             return True
     return False
 
