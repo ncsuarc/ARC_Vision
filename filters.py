@@ -1,10 +1,14 @@
 import cv2
 import numpy as np
 import math
+import ROI
 
-def filter_primary(image):
-    imgs = []
-    
+def filter_primary(arc_image):
+    filename = arc_image.filename
+    image = cv2.imread(filename[:-3] + 'jpg')
+
+    ROIs = []
+
     mask = color_mask(image)
 
     kernel = np.ones((3,3), np.uint8)
@@ -16,18 +20,20 @@ def filter_primary(image):
     cnt_out = np.zeros(image.shape)
     cnt_out = np.uint8(cnt_out)
     for cnt in contours:
-        if (cv2.contourArea(cnt) > 100) and (cv2.contourArea(cnt) < 4000):
-            x, y, width, height = cv2.boundingRect(cnt)
-            roi = image[y:y+height, x:x+width]
-            imgs.append(roi)
+        x, y, width, height = cv2.boundingRect(cnt)
+        real_width = width*arc_image.width_m_per_px
+        real_height = height*arc_image.height_m_per_px
+        if (0.2 <= real_width <= 2) and (0.2 <= real_width <= 2):
+            roi = ROI.ROI(arc_image, image, x=x, y=y, width=width, height=height)
+            ROIs.append(roi)
             cv2.drawContours(cnt_out, [cnt], 0, (255,255,255), 3)
     
     mask_rgb = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
     dst = cv2.addWeighted(image,0.7,mask_rgb,0.3,0)
-    #cv2.imshow('Display', dst)
-    #cv2.waitKey()
+#    cv2.imshow('Display', dst)
+#    cv2.waitKey()
     
-    return imgs
+    return ROIs
 
 def check_target(image):
     kernel = np.ones((3,3), np.uint8)
@@ -71,8 +77,8 @@ def check_target(image):
 #        cv2.imshow('Display', res)
 #        if(cv2.waitKey() == 115):
 #            cv2.imwrite("image.jpg", image)
-        print('\t' + str(ar))
-        print('\t' + str(compactness))
+#        print('\t' + str(ar))
+#        print('\t' + str(compactness))
         if (ar > 0.3) and (ar < 3): # and (compactness > 900000) and (compactness < 2100000):
             return True
     return False

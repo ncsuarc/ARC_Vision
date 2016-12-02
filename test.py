@@ -28,18 +28,12 @@ n=0
 for image_file in images:
 #for i in range(1):
 #    image_file = images[5]
-    filename = image_file.filename
-    print(filename)
-    image = cv2.imread(filename[:-3] + 'jpg')
-    imgs = filter_primary(image)
+    if(image_file.nadired):
+        ROIs = filter_primary(image_file)
 
-#    cv2.imshow('Display', image)
-#    cv2.waitKey()
-
-    for img in imgs:
-        if(check_target(img)):
-            print(n)
-            #cv2.imshow('Display', img)
-            #if(cv2.waitKey() == 115):
-            cv2.imwrite("crops/image"+str(n)+".jpg", image)
-            n += 1
+        for region in ROIs:
+            if(check_target(region.roi)):
+                cv2.imshow('Display', region.roi)
+                if(cv2.waitKey() == 115):
+                    #cv2.imwrite("crops/image"+str(n)+".jpg", image)
+                    n += 1
