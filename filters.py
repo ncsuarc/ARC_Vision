@@ -24,22 +24,19 @@ def filter_primary(image):
     
     mask_rgb = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
     dst = cv2.addWeighted(image,0.7,mask_rgb,0.3,0)
-    cv2.imshow('Display', dst)
-    cv2.waitKey()
+    #cv2.imshow('Display', dst)
+    #cv2.waitKey()
     
     return imgs
 
 def check_target(image):
     kernel = np.ones((3,3), np.uint8)
     mask = color_mask(image)
-    mask = cv2.erode(mask, kernel, iterations = 1)
+    mask = cv2.erode(mask, kernel, iterations = 2)
+    mask = cv2.dilate(mask, kernel, iterations = 2)
     
     m = cv2.moments(mask)
 
-    res = cv2.bitwise_and(image, image, mask=mask)
-#    cv2.imshow('Display', res)
-#    if(cv2.waitKey() == 115):
-#        cv2.imwrite("image.jpg", image)
     #Check that there is a substantial number of pixels present, rather than a handful of interesting specks of grass
     if m['m00'] > 1500:
         #Run KMeans with K=3 for grass, target, and character
@@ -55,7 +52,7 @@ def check_target(image):
         mask = color_mask(res)
         mask = cv2.erode(mask, kernel, iterations = 1)
         mask = cv2.dilate(mask, kernel, iterations = 1)
-
+        
         pts = cv2.findNonZero(mask)
         if pts == None:
             return False
@@ -70,21 +67,24 @@ def check_target(image):
             ar = 0
         else:
             ar = dist(tl, tr)/dist(tl, bl)        
-        if (ar > 0.3) and (ar < 3) and (compactness > 900000) and (compactness < 2000000):
-#            print(compactness)
-#            cv2.drawContours(res2, [box], 0, (255,255,255), 2)
-#            dst = cv2.addWeighted(res2,0.7,res,0.3,0)
+        
+#        cv2.imshow('Display', res)
+#        if(cv2.waitKey() == 115):
+#            cv2.imwrite("image.jpg", image)
+        print('\t' + str(ar))
+        print('\t' + str(compactness))
+        if (ar > 0.3) and (ar < 3): # and (compactness > 900000) and (compactness < 2100000):
             return True
     return False
 
 def color_mask(image):
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     red_mask1 = cv2.inRange(image_hsv, np.array([0, 64, 200]), np.array([10, 255, 255]))
-    red_mask2 = cv2.inRange(image_hsv, np.array([170, 100, 100]), np.array([180, 180, 255]))
-    blue_mask = cv2.inRange(image_hsv, np.array([100, 100, 100]), np.array([130, 255, 255]))
     yellow_mask = cv2.inRange(image_hsv, np.array([10, 128, 200]), np.array([30, 255, 255]))
     green_mask1 = cv2.inRange(image_hsv, np.array([30, 50, 100]), np.array([60, 100, 255]))
     green_mask2 = cv2.inRange(image_hsv, np.array([60, 50, 100]), np.array([120, 100, 255]))
+    blue_mask = cv2.inRange(image_hsv, np.array([100, 100, 100]), np.array([160, 255, 255]))
+    red_mask2 = cv2.inRange(image_hsv, np.array([170, 100, 100]), np.array([180, 180, 255]))
    
     mask = cv2.bitwise_or(red_mask1, red_mask2)
     mask = cv2.bitwise_or(mask, blue_mask)

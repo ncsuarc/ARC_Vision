@@ -23,8 +23,8 @@ for tgt in targets:
             break
         dist += 1
     images.extend(new_images)
-#images = flight.all_images()
-
+images = flight.all_images()
+n=0
 for image_file in images:
 #for i in range(1):
 #    image_file = images[5]
@@ -38,5 +38,8 @@ for image_file in images:
 
     for img in imgs:
         if(check_target(img)):
-            cv2.imshow('Display', img)
-            cv2.waitKey()
+            print(n)
+            #cv2.imshow('Display', img)
+            #if(cv2.waitKey() == 115):
+            cv2.imwrite("crops/image"+str(n)+".jpg", image)
+            n += 1
