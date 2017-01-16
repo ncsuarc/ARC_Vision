@@ -6,32 +6,34 @@ import ROI
 def filter_primary(arc_image):
     filename = arc_image.filename
     image = cv2.imread(filename[:-3] + 'jpg')
+    image_blur = cv2.GaussianBlur(image, (5, 5), 0)
 
     ROIs = []
 
-    mask = color_mask(image)
+    mask = color_mask(image_blur)
 
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    # Expand the area a little more to make sure the whole target is included
     kernel = np.ones((3,3), np.uint8)
-    mask = cv2.erode(mask, kernel, iterations = 1)
-    mask = cv2.dilate(mask, kernel, iterations = 12)
-
+    mask = cv2.dilate(mask, kernel, iterations = 2)
+    
     canny = cv2.Canny(mask, 100, 200)
     im2, contours, hierarchy = cv2.findContours(canny,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-    cnt_out = np.zeros(image.shape)
-    cnt_out = np.uint8(cnt_out)
+    cnt_out = np.zeros(image.shape, np.uint8)
     for cnt in contours:
-        x, y, width, height = cv2.boundingRect(cnt)
-        real_width = width*arc_image.width_m_per_px
-        real_height = height*arc_image.height_m_per_px
-        if (0.2 <= real_width <= 2) and (0.2 <= real_width <= 2):
-            roi = ROI.ROI(arc_image, image, x=x, y=y, width=width, height=height)
-            ROIs.append(roi)
-            cv2.drawContours(cnt_out, [cnt], 0, (255,255,255), 3)
+        try:
+            roi = ROI.ROI(arc_image, image, cnt)
+        except Exception as e:
+            print("Not a target: " + str(e))
+            continue
+        ROIs.append(roi)
+        cv2.drawContours(cnt_out, [cnt], 0, (255,255,255), 3)
     
-    mask_rgb = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-    dst = cv2.addWeighted(image,0.7,mask_rgb,0.3,0)
-#    cv2.imshow('Display', dst)
-#    cv2.waitKey()
+    dst = cv2.addWeighted(image,0.5,cnt_out,0.5,0)
+    cv2.imshow('Display', dst)
+    cv2.waitKey()
     
     return ROIs
 
@@ -55,9 +57,10 @@ def check_target(image):
         res = centers[labels.flatten()]
         res = res.reshape((image.shape))
          
-        mask = color_mask(res)
+        mask = remove_green_mask(res)
         mask = cv2.erode(mask, kernel, iterations = 1)
-        mask = cv2.dilate(mask, kernel, iterations = 1)
+        mask = cv2.dilate(mask, kernel, iterations = 2)
+        mask = cv2.erode(mask, kernel, iterations = 1)
         
         pts = cv2.findNonZero(mask)
         if pts == None:
@@ -98,6 +101,12 @@ def color_mask(image):
     mask = cv2.bitwise_or(mask, green_mask1) 
     mask = cv2.bitwise_or(mask, green_mask2)
 
+    return mask
+
+def remove_green_mask(image):
+    image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    green_mask = cv2.inRange(image_hsv, np.array([30, 50, 100]), np.array([60, 100, 255]))
+    mask = cv2.bitwise_not(green_mask)
     return mask
 
 def order_points(pts):
