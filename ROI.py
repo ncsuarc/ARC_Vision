@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
+import math
 import filters
+
 class ROI():
     def __init__(self, arc_image, image, cnt):
         hull = cv2.convexHull(cnt)
@@ -30,7 +32,7 @@ class ROI():
         self.roi = cv2.warpAffine(self.roi, M, (full_width, full_height))
         if not self.validate():
             raise ValueError("Failed validation test.")
-
+    
     def validate(self):
         #check area of the hull compared to the area of the rect
         hull_area = cv2.contourArea(self.hull)
@@ -40,4 +42,27 @@ class ROI():
 
         if (rect_area*.7) > hull_area:
             return False
-        return True
+
+        #Calculate aspect ratio of rotated bounding box
+        tl, tr, br, bl = self.order_points(rect_cnt)
+        if self.dist(tl, bl) == 0:
+            ar = 0
+        else:
+            ar = self.dist(tl, tr)/self.dist(tl, bl) 
+        
+        return (0.3 < ar < 3)
+        
+    def order_points(self, pts):
+        s = pts.sum(axis = 1)
+        diff = np.diff(pts, axis = 1)
+        tl = pts[np.argmin(s)]
+        tr = pts[np.argmin(diff)]
+        br = pts[np.argmax(s)]
+        bl = pts[np.argmax(diff)]
+        
+        return (tl, tr, br, bl)
+        
+    def dist(self, pt1, pt2):
+        x1, y1 = pt1
+        x2, y2 = pt2
+        return math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1))
