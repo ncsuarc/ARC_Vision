@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import math
 import filters
+from roi_cnn.check_target import check_target
 
 class ROI():
     def __init__(self, arc_image, image, cnt):
@@ -50,8 +51,14 @@ class ROI():
         else:
             ar = self.dist(tl, tr)/self.dist(tl, bl) 
         
-        return (0.3 < ar < 3)
+        if not (0.3 < ar < 3):
+            return False
         
+        if not check_target(self.roi):
+            return False
+
+        return True
+
     def order_points(self, pts):
         s = pts.sum(axis = 1)
         diff = np.diff(pts, axis = 1)
