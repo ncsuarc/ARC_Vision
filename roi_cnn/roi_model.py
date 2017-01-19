@@ -25,7 +25,7 @@ class Model:
         self.saver = tf.train.Saver(tf.trainable_variables())
         if load:
             try:
-                ckpt = tf.train.get_checkpoint_state('./training')
+                ckpt = tf.train.get_checkpoint_state('/home/arc/moore/vision/roi_cnn/training')
                 print("Reading saved model parameters from %s" % ckpt.model_checkpoint_path)
                 self.saver.restore(sess, ckpt.model_checkpoint_path)
             except Exception as e:
