@@ -2,35 +2,23 @@ import cv2
 import numpy as np
 import math
 import filters
-from roi_cnn.check_target import check_target
 
 class ROI():
     def __init__(self, arc_image, image, cnt):
         hull = cv2.convexHull(cnt)
 
         x, y, w, h = cv2.boundingRect(hull)
-        rect = _, _, angle = cv2.minAreaRect(hull)
+        rect = cv2.minAreaRect(hull)
 
         roi_mask = np.zeros(image.shape[0:2], np.uint8)
         cv2.drawContours(roi_mask, [hull], 0, 255, -1)
         image_masked = cv2.bitwise_and(image, image, mask=roi_mask)
+        
         self.roi = image_masked[y:y+h, x:x+w]
-        
-        (c_x, c_y) = (w // 2, h // 2)
-        M = cv2.getRotationMatrix2D((c_x, c_y), -angle, 1.0)
-        cos = np.abs(M[0, 0])
-        sin = np.abs(M[0, 1])
-        full_width = int((h * sin) + (w * cos))
-        full_height = int((h * cos) + (w * sin))
-        M[0, 2] += (full_width / 2) - c_x
-        M[1, 2] += (full_height / 2) - c_y
-        
         self.rect = rect
         self.hull = hull
-        self.angle = angle
         self.arc_image = arc_image
         self.image = image
-        self.roi = cv2.warpAffine(self.roi, M, (full_width, full_height))
         if not self.validate():
             raise ValueError("Failed validation test.")
     
@@ -54,9 +42,6 @@ class ROI():
         if not (0.3 < ar < 3):
             return False
         
-        if not check_target(self.roi):
-            return False
-
         return True
 
     def order_points(self, pts):

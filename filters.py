@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import math
 import ROI
+from roi_cnn.check_targets import check_targets
 
 def high_pass_filter(arc_image):
     filename = arc_image.filename
@@ -23,11 +24,16 @@ def high_pass_filter(arc_image):
             if (0.5 <= real_width <= 2) and (0.5 <= real_height <= 2):
                 roi = ROI.ROI(arc_image, image, cnt)
                 ROIs.append(roi)
-                cv2.drawContours(cnt_out, [cnt], 0, (255,255,255), 3)
         except Exception as e:
-            print("Not a target: " + str(e))
+            #print("Not a target: " + str(e))
             continue
-    
+   
+    images = [roi.roi for roi in ROIs] 
+    labels = check_targets(images)
+    for roi, label in zip(ROIs, labels):
+        if(label):
+            cv2.drawContours(cnt_out, [roi.hull], 0, (255,255,255), 3)
+
     dst = cv2.addWeighted(image,0.5,cnt_out,0.5,0)
     cv2.imshow('Display', dst)
     cv2.waitKey()
