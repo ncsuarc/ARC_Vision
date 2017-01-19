@@ -6,9 +6,6 @@ import roi_model
 from os import listdir
 from os.path import isfile, join
 
-cnn_model = roi_model.Model()
-
-init = tf.global_variables_initializer()
 images = []
 
 for i in range(0,1214):
@@ -18,11 +15,10 @@ for i in range(0,1214):
 
 # Launch the graph
 with tf.Session() as sess:
-    sess.run(init)
+    cnn_model = roi_model.Model(sess)
     predicted_labels = cnn_model.test(sess, images)
     for (img, pred) in zip(images, predicted_labels):
         idx = np.argmax(pred)
-        print(pred)
         if(bool(idx)):
             cv2.imshow("Display", img.reshape((60,60,3)))
             cv2.waitKey()

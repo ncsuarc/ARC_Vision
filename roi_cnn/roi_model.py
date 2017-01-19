@@ -1,9 +1,7 @@
 import tensorflow as tf
 
 class Model:
-    def __init__(self, load=True):
-        self.load = load
-
+    def __init__(self, sess, load=True):
         self.learning_rate = 0.001
         self.batch_size = 100 
         self.display_step = 5 
@@ -25,6 +23,15 @@ class Model:
         self.accuracy = tf.reduce_mean(tf.cast(self.correct_pred, tf.float32))
 
         self.saver = tf.train.Saver(tf.trainable_variables())
+        if load:
+            try:
+                ckpt = tf.train.get_checkpoint_state('./training')
+                print("Reading saved model parameters from %s" % ckpt.model_checkpoint_path)
+                self.saver.restore(sess, ckpt.model_checkpoint_path)
+            except Exception as e:
+                print("Creating a new model.")
+                sess.run(tf.global_variables_initializer())
+
     def conv_net(self):
         #Reshape input image
         x_image = tf.reshape(self.x, shape=[-1, 60, 60, 3])
@@ -72,12 +79,10 @@ class Model:
                               "{:.6f}".format(loss) + ", Training Accuracy= " + \
                               "{:.5f}".format(acc))
             step += 1
-        print("Optimization Finished!")
+        save_path = self.saver.save(sess, "training/model", global_step=step)
+        print("Final checkpoint saved in file: %s" % save_path)
     
     def test(self, sess, images):
-        ckpt = tf.train.get_checkpoint_state('./training')
-        print("Reading saved model parameters from %s" % ckpt.model_checkpoint_path)
-        self.saver.restore(sess, ckpt.model_checkpoint_path)
         return sess.run(self.predictor, feed_dict={self.x: images, self.keep_prob: 1.})
 
 #Wrappers
