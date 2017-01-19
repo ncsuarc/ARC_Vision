@@ -25,11 +25,11 @@ def high_pass_filter(arc_image):
                 ROIs.append(roi)
                 cv2.drawContours(cnt_out, [cnt], 0, (255,255,255), 3)
         except Exception as e:
-            print("Not a target: " + str(e))
+            #print("Not a target: " + str(e))
             continue
     
-    dst = cv2.addWeighted(image,0.5,cnt_out,0.5,0)
-    cv2.imshow('Display', dst)
-    cv2.waitKey()
+#    dst = cv2.addWeighted(image,0.5,cnt_out,0.5,0)
+#    cv2.imshow('Display', dst)
+#    cv2.waitKey()
     
     return ROIs
