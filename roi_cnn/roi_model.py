@@ -31,6 +31,9 @@ class Model:
             except Exception as e:
                 print("Creating a new model.")
                 sess.run(tf.global_variables_initializer())
+        else:
+            print("Creating a new model.")
+            sess.run(tf.global_variables_initializer())
 
     def conv_net(self):
         #Reshape input image
