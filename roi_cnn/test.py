@@ -3,9 +3,6 @@ import tensorflow as tf
 import numpy as np
 import roi_model
 
-from os import listdir
-from os.path import isfile, join
-
 images = []
 
 for i in range(0,1214):

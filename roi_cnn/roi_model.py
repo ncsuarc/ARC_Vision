@@ -1,4 +1,5 @@
 import tensorflow as tf
+import os
 
 class Model:
     def __init__(self, sess, load=True):
