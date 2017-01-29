@@ -10,7 +10,7 @@ class ROI():
         x, y, w, h = cv2.boundingRect(hull)
         real_width = w*arc_image.width_m_per_px
         real_height = h*arc_image.height_m_per_px
-        if not ((0.5 <= real_width <= 2.0) and (0.5 < real_height <= 2.0)):
+        if not ((0.25 <= real_width <= 2.0) and (0.25 <= real_height <= 2.0)):
             raise ValueError("Failed size test.")
             
         rect = cv2.minAreaRect(hull)
