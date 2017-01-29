@@ -3,10 +3,14 @@ import tensorflow as tf
 import numpy as np
 import roi_model
 
+from os import listdir
+
 images = []
 
-for i in range(0,1214):
-    img = cv2.imread("roi/roi_{}.jpg".format(i))
+for f in listdir("roi"):
+    if not f.endswith(".jpg"):
+        continue
+    img = cv2.imread("roi/"+f)
     img = cv2.resize(img, (60,60))
     images.append(img.flatten())
 

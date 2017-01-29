@@ -11,15 +11,15 @@ def high_pass_filter(arc_image):
     ROIs = []
     
     image_blur = cv2.GaussianBlur(image, (5, 5), 0)
-    canny = cv2.Canny(image_blur, 100, 200)
+    canny = cv2.Canny(image_blur, 75, 150)
 
     (_, contours, _) = cv2.findContours(canny,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-    cnt_out = np.zeros(image.shape, np.uint8)
+#    cnt_out = np.zeros(image.shape, np.uint8)
     for cnt in contours:
         try:
             roi = ROI.ROI(arc_image, image, cnt)
             ROIs.append(roi)
-            cv2.drawContours(cnt_out, [roi.hull], 0, (255,255,255), 3)
+#            cv2.drawContours(cnt_out, [roi.hull], 0, (255,255,255), 3)
         except ValueError as e:
             print("Not a target: " + str(e))
             continue
@@ -35,9 +35,8 @@ def high_pass_filter(arc_image):
 #        if(label):
 #            cv2.drawContours(cnt_out, [roi.hull], 0, (255,255,255), 3)
 
-    canny_color = cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)
-    dst = cv2.addWeighted(image,0.25,cnt_out,0.75,0)
-    cv2.imshow('Display', dst)
-    cv2.waitKey()
+#    dst = cv2.addWeighted(image,0.5,cnt_out,0.5,0)
+#    cv2.imshow('Display', dst)
+#    cv2.waitKey()
     
     return ROIs
