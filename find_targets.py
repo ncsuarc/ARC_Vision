@@ -1,15 +1,48 @@
 import numpy as np
 import cv2
 import ARC
-from PyQt5.QtWidgets import (QWidget, QPushButton, QApplication)
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import (QWidget, QPushButton, QApplication, QHBoxLayout, QVBoxLayout, QLabel)
 from PyQt5.QtGui import (QImage, QPainter, QColor)
 
 import filters
 
-class Window(QWidget):
+class MainWindow(QWidget):
     def __init__(self, parent=None, flight_number=0):
-        super(Window, self).__init__(parent)
+        super(MainWindow, self).__init__(parent)
+
+        self.imageCanvas = ROICanvas(parent=self, flight_number=flight_number)
+        self.initUI()
+
+    def initUI(self):
+        nextButton = QPushButton("Next")
+        prevButton = QPushButton("Previous")
+        
+        nextButton.clicked.connect(self.imageCanvas.nextImage)
+        prevButton.clicked.connect(self.imageCanvas.prevImage)
+        
+        hbox = QHBoxLayout(self)
+        hbox.addStretch(1)
+        hbox.addWidget(self.imageCanvas)
+        
+        vbox = QVBoxLayout()
+        vbox.addWidget(nextButton)
+        vbox.addWidget(prevButton)
+        
+        hbox.addLayout(vbox)
+        self.setLayout(hbox)
+
+    def keyPressEvent(self, QKeyEvent):
+        super(MainWindow, self).keyPressEvent(QKeyEvent)
+
+class ROICanvas(QWidget):
+    
+    def __init__(self, parent=None, flight_number=0):
+        super(ROICanvas, self).__init__(parent)
+        
+        #self.label = QLabel("Regions of Interest", parent=self)
         self.mQImages = []
+        self.ROIs = []
 
         try:
             flight = ARC.Flight(flight_number)
@@ -24,41 +57,59 @@ class Window(QWidget):
             #Remove duplicate files
             self.images = list(set(self.images)) 
             
-            n = 0
-            while len(self.mQImages) == 0:
-                self.show_image_ROIs(n)
-                n += 1
+            self.n = -1 #Next image will iterate this to 0
+            self.nextImage()
         except ValueError as e:
             print(e)
 
-    def show_image_ROIs(self, n):
+    def nextImage(self): 
+        self.n += 1
+        if self.n >= len(self.images):
+            return
+        self.show_image_ROIs()
+        #if len(self.mQImages) == 0:
+        #    self.nextImage()
+
+    def prevImage(self):
+        self.n -= 1
+        if self.n <= 0:
+            return
+        self.show_image_ROIs()
+        #if len(self.mQImages) == 0:
+        #    self.prevImage()
+
+    def show_image_ROIs(self):
         del self.mQImages[:]
         self.mQImages = []
-        ROIs = filters.high_pass_filter(self.images[n])
+        self.ROIs = filters.high_pass_filter(self.images[self.n])
         #ROIs = filters.false_positive_filter(ROIs)
-        for roi in ROIs:
-            img = QImage(roi.roi.shape[1], roi.roi.shape[0], QImage.Format_RGB888)
-            for x in range(roi.roi.shape[1]):
-                for y in range(roi.roi.shape[0]):
-                    img.setPixel(x, y, QColor(*(roi.roi[x,y])).rgb())
-            self.mQImages.append()
+        for roi in self.ROIs:
+            image = cv2.resize(roi.roi, (60,60))
+            self.mQImages.append(cvImgToQImg(image))
+        self.parent().update()
 
     def paintEvent(self, QPaintEvent):
         painter = QPainter()
         painter.begin(self)
-        x_off = 0
-        y_off = 0
+
+        painter.drawImage(10, 10, cvImgToQImg(self.ROIs[0].image))
+
+        x_off = 10
+        y_off = (self.geometry().height()/2) + 10
         for img in self.mQImages:
             painter.drawImage(x_off, y_off, img)
-            x_off += 60
-            if x_off >= 1920:
-                x_off = 0
-                y_off += 60
-
+            x_off += 70
+            if x_off >= self.geometry().width():
+                x_off = 10
+                y_off += 70
         painter.end()
 
-    def keyPressEvent(self, QKeyEvent):
-        super(Window, self).keyPressEvent(QKeyEvent)
+def cvImgToQImg(cvImg):
+    qimg = QImage(cvImg.shape[1], cvImg.shape[0], QImage.Format_RGB888)
+    for x in range(cvImg.shape[1]-1):
+        for y in range(cvImg.shape[0]-2):
+            qimg.setPixel(x, y, QColor(*(cvImg[x,y])).rgb())
+    return qimg
 
 if __name__=="__main__":
     import sys
@@ -70,9 +121,9 @@ if __name__=="__main__":
     
     app = QApplication(sys.argv)
     if args.input_flight:
-        w = Window(flight_number=args.input_flight)
+        w = MainWindow(flight_number=args.input_flight)
     else:
-        w = Window()
-    w.resize(1920, 1080)
+        w = MainWindow()
+    w.resize(1600, 900)
     w.show()
     app.exec_()
