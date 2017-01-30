@@ -21,17 +21,24 @@ def high_pass_filter(arc_image):
     
     image_blur = cv2.GaussianBlur(image, (5, 5), 0)
 
-    step = 10
+    goal = 300
     while True:
         canny = cv2.Canny(image_blur, canny_low, canny_high)
 
         (_, contours, _) = cv2.findContours(canny,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-        print("Contours:{}  Low:{} High:{} Step:{}".format(len(contours), canny_low, canny_high, step))
-        if len(contours) > 100:
-            canny_low -= step
+        n = len(contours)
+        step = (goal-n)/5
+        print("Contours:{}  Low:{} High:{} Step:{}".format(n, canny_low, canny_high, step))
+        if n > (goal*4/3):
+            canny_low += step
             if canny_low < 10:
-                canny_high += step
-                canny_low = canny_high - 30
+                canny_high -= step
+                canny_low = canny_high*0.7
+        elif n < (goal*2/3):
+            canny_low += step
+            if canny_low >= canny_high:
+                canny_high -= step
+                canny_low = canny_high*0.7
         else:
             break
 
@@ -42,24 +49,20 @@ def high_pass_filter(arc_image):
         try:
             roi = ROI.ROI(arc_image, image, cnt)
             ROIs.append(roi)
-            cv2.drawContours(cnt_out, [roi.hull], 0, (255,255,255), 3)
+            cv2.drawContours(cnt_out, [roi.hull], 0, (255, 0, 0), 3)
         except ValueError as e:
-#            print("Not a target: " + str(e))
             continue
    
-#    images = [roi.roi for roi in ROIs] 
-#    if len(images) == 0:
-#        return []
-#    labels = check_targets(images)
-#    for roi, label, img in zip(ROIs, labels, images):
-#        cv2.imshow('other', img);
-#        print(label)
-#        cv2.waitKey()
-#        if(label):
-#            cv2.drawContours(cnt_out, [roi.hull], 0, (255,255,255), 3)
+    images = [roi.roi for roi in ROIs] 
+    if len(images) == 0:
+        return []
+    labels = check_targets(images)
+    for roi, label, img in zip(ROIs, labels, images):
+        if(label):
+            cv2.drawContours(cnt_out, [roi.hull], 0, (255, 255, 255), 3)
 
     canny_color = cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)
-    dst = cv2.addWeighted(image,0.25,cnt_out,0.75,0)
+    dst = cv2.addWeighted(image,0.75,cnt_out,0.25,0)
     cv2.imshow('Display', dst)
     cv2.waitKey()
     
