@@ -12,7 +12,6 @@ parser.add_argument("-i", "--input", required=True, help="Flight number to searc
 args = vars(parser.parse_args())
 
 flight = ARC.Flight(args['input'])
-
 targets = flight.all_targets()
 images = []
 
@@ -21,6 +20,8 @@ for tgt in targets:
         continue
     new_images = flight.images_near(tgt.coord, 50)
     images.extend(new_images)
+#Remove duplicate files
+images = dict((image.filename, image) for image in images).values()
 #images = flight.all_images()
 
 n = 0

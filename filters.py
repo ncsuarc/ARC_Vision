@@ -49,7 +49,7 @@ def high_pass_filter(arc_image):
         try:
             roi = ROI.ROI(arc_image, image, cnt)
             ROIs.append(roi)
-            cv2.drawContours(cnt_out, [roi.hull], 0, (255, 0, 0), 3)
+            cv2.drawContours(cnt_out, [roi.hull], 0, (255, 0, 0), 10)
         except ValueError as e:
             continue
    
@@ -59,7 +59,7 @@ def high_pass_filter(arc_image):
     labels = check_targets(images)
     for roi, label, img in zip(ROIs, labels, images):
         if(label):
-            cv2.drawContours(cnt_out, [roi.hull], 0, (255, 255, 255), 3)
+            cv2.drawContours(cnt_out, [roi.hull], 0, (255, 255, 255), 10)
 
     canny_color = cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)
     dst = cv2.addWeighted(image,0.75,cnt_out,0.25,0)
