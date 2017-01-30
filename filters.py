@@ -4,7 +4,7 @@ import math
 import ROI
 from roi_cnn.check_targets import check_targets
 
-def high_pass_filter(arc_image):
+def high_pass_filter(arc_image, goal=300):
     try:
         canny_low
         canny_high
@@ -21,7 +21,6 @@ def high_pass_filter(arc_image):
     
     image_blur = cv2.GaussianBlur(image, (5, 5), 0)
 
-    goal = 300
     while True:
         canny = cv2.Canny(image_blur, canny_low, canny_high)
 
@@ -49,21 +48,19 @@ def high_pass_filter(arc_image):
         try:
             roi = ROI.ROI(arc_image, image, cnt)
             ROIs.append(roi)
-            cv2.drawContours(cnt_out, [roi.hull], 0, (255, 0, 0), 10)
         except ValueError as e:
             continue
    
-    images = [roi.roi for roi in ROIs] 
-    if len(images) == 0:
-        return []
-    labels = check_targets(images)
-    for roi, label, img in zip(ROIs, labels, images):
-        if(label):
-            cv2.drawContours(cnt_out, [roi.hull], 0, (255, 255, 255), 10)
-
-    canny_color = cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)
-    dst = cv2.addWeighted(image,0.75,cnt_out,0.25,0)
-    cv2.imshow('Display', dst)
-    cv2.waitKey()
-    
     return ROIs
+
+def false_positive_filter(old_ROIs):
+    if len(old_ROIs) == 0:
+        return []
+
+    new_ROIs = []
+    images = [roi.roi for roi in old_ROIs] 
+    labels = check_targets(images)
+    for roi, label in zip(old_ROIs, labels):
+        if(label):
+            new_ROIs.append(roi)
+    return new_ROIs

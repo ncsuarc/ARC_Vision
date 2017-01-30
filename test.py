@@ -30,6 +30,9 @@ for image_file in images:
     filename = image_file.filename
     image = cv2.imread(filename[:-3] + 'jpg')
     ROIs = filters.high_pass_filter(image_file)
-#    for roi in ROIs:
-#        cv2.imwrite("roi/roi{}.jpg".format(n), roi.roi)
-#        n += 1
+    ROIs = filters.false_positive_filter(ROIs)
+    for roi in ROIs:
+        cv2.imshow('Display', roi.roi)
+        cv2.waitKey()
+        #cv2.imwrite("roi/roi{}.jpg".format(n), roi.roi)
+        n += 1
