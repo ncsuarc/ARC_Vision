@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import ARC
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import (QWidget, QPushButton, QApplication, QHBoxLayout, QVBoxLayout, QLabel)
+from PyQt5.QtWidgets import (QWidget, QPushButton, QScrollArea, QApplication, QHBoxLayout, QVBoxLayout)
 from PyQt5.QtGui import (QImage, QPainter, QColor)
 
 import filters
@@ -11,40 +11,10 @@ class MainWindow(QWidget):
     def __init__(self, parent=None, flight_number=0):
         super(MainWindow, self).__init__(parent)
 
-        self.imageCanvas = ROICanvas(parent=self, flight_number=flight_number)
-        self.initUI()
-
-    def initUI(self):
-        nextButton = QPushButton("Next")
-        prevButton = QPushButton("Previous")
-        
-        nextButton.clicked.connect(self.imageCanvas.nextImage)
-        prevButton.clicked.connect(self.imageCanvas.prevImage)
-        
-        hbox = QHBoxLayout(self)
-        hbox.addWidget(self.imageCanvas)
-        
-        vbox = QVBoxLayout()
-        vbox.addWidget(nextButton)
-        vbox.addWidget(prevButton)
-        vbox.addStretch(1)
-
-        hbox.addLayout(vbox)
-        self.setLayout(hbox)
-
-    def keyPressEvent(self, evt):
-        super(MainWindow, self).keyPressEvent(evt)
-
-class ROICanvas(QWidget):
-    def __init__(self, parent=None, flight_number=0):
-        super(ROICanvas, self).__init__(parent)
-        
-        self.mQImages = []
-        self.ROIs = []
+        self.flight_number = flight_number
         self.images = []
-        self.currentImage = None
-        self.roi_height = 0
 
+        self.initUI()
         try:
             flight = ARC.Flight(flight_number)
             targets = flight.all_targets()
@@ -62,21 +32,75 @@ class ROICanvas(QWidget):
         except ValueError as e:
             print(e)
 
+    def initUI(self):
+        self.imageCanvas = ImageCanvas()
+
+        self.roiDisplayScroll = QScrollArea(self)
+        self.roiDisplay = QWidget()
+        self.roiDisplayScroll.setWidget(self.roiDisplay)
+
+        nextButton = QPushButton("Next")
+        prevButton = QPushButton("Previous")
+        
+        nextButton.clicked.connect(self.nextImage)
+        prevButton.clicked.connect(self.prevImage)
+        
+        ctl = QHBoxLayout()
+        ctl.addWidget(prevButton)
+        ctl.addStretch(1)
+        ctl.addWidget(nextButton)
+        
+        vbox = QVBoxLayout()
+        vbox.addLayout(ctl)
+        vbox.addWidget(self.imageCanvas)
+
+        hbox = QHBoxLayout(self)
+        hbox.addLayout(vbox)
+        hbox.addWidget(self.roiDisplayScroll)
+
+        self.setLayout(vbox)
+
     def nextImage(self): 
         self.n += 1
         if self.n >= len(self.images):
             return
-        self.show_image_ROIs()
-        #if len(self.mQImages) == 0:
-        #    self.nextImage()
+        self.imageCanvas.image = cv2.imread(self.images[self.n].filename[:-3] + 'jpg')
+        self.update()
 
     def prevImage(self):
         self.n -= 1
         if self.n <= 0:
             return
-        self.show_image_ROIs()
-        #if len(self.mQImages) == 0:
-        #    self.prevImage()
+        self.imageCanvas.image = self.images[self.n]
+        self.update()
+
+    def keyPressEvent(self, evt):
+        super(MainWindow, self).keyPressEvent(evt)
+
+class ImageCanvas(QWidget):
+    def __init__(self, parent=None, image=None):
+        super(ImageCanvas, self).__init__(parent)
+        if(image):
+            self.image = cv2.imread(image.filename[:-3] + 'jpg')
+        
+    def paintEvent(self, evt):
+        painter = QPainter()
+        painter.begin(self)
+
+        new_width = self.geometry().width()
+        new_height = int(new_width*self.image.shape[0]/self.image.shape[1])
+        painter.drawImage(0, 0, cvImgToQImg(cv2.resize(self.image, (new_width, new_height))))
+
+class ROICanvas(QWidget):
+    def __init__(self, parent=None, flight_number=0):
+        super(ROICanvas, self).__init__(parent)
+        
+        self.mQImages = []
+        self.ROIs = []
+        self.images = []
+        self.currentImage = None
+        self.roi_height = 0
+
 
     def show_image_ROIs(self):
         del self.mQImages[:]

@@ -4,7 +4,7 @@ import math
 import ROI
 from roi_cnn.check_targets import check_targets
 
-def high_pass_filter(arc_image, goal=500):
+def high_pass_filter(arc_image, goal=600):
     try:
         num_iter
         num_images
@@ -24,7 +24,7 @@ def high_pass_filter(arc_image, goal=500):
     
     image_blur = cv2.GaussianBlur(image, (5, 5), 0)
 
-    canny_low = 125
+    canny_low = 100
     canny_high = 325
     error = 0
     error_total = 0
