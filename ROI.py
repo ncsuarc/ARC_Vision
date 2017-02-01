@@ -24,6 +24,7 @@ class ROI():
         self.hull = hull
         self.arc_image = arc_image
         self.image = image
+        self.target = False
         if not self.validate():
             raise ValueError("Failed validation test.")
     
