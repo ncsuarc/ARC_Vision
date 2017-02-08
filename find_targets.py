@@ -1,8 +1,8 @@
 import numpy as np
 import cv2
 import ARC
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import (QWidget, QPushButton, QScrollArea, QApplication, QHBoxLayout, QVBoxLayout)
+from PyQt5.QtCore import QRect
+from PyQt5.QtWidgets import (QWidget, QPushButton, QScrollArea, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout)
 from PyQt5.QtGui import (QImage, QPainter, QColor)
 
 import filters
@@ -13,6 +13,7 @@ class MainWindow(QWidget):
 
         self.flight_number = flight_number
         self.images = []
+        self.ROI_canvases = []
 
         self.initUI()
         try:
@@ -36,9 +37,14 @@ class MainWindow(QWidget):
         self.imageCanvas = ImageCanvas()
 
         self.roiDisplayScroll = QScrollArea(self)
+        self.roiDisplayScroll.setWidgetResizable(True)
+        self.roiDisplayScroll.setMinimumWidth(400)
+        self.roiDisplayScroll.setMaximumWidth(400)
         self.roiDisplay = QWidget()
+        self.roiLayout = QGridLayout()
+        self.roiDisplay.setLayout(self.roiLayout)
         self.roiDisplayScroll.setWidget(self.roiDisplay)
-
+        
         nextButton = QPushButton("Next")
         prevButton = QPushButton("Previous")
         
@@ -58,20 +64,37 @@ class MainWindow(QWidget):
         hbox.addLayout(vbox)
         hbox.addWidget(self.roiDisplayScroll)
 
-        self.setLayout(vbox)
+        self.setLayout(hbox)
 
     def nextImage(self): 
         self.n += 1
         if self.n >= len(self.images):
             return
-        self.imageCanvas.image = cv2.imread(self.images[self.n].filename[:-3] + 'jpg')
-        self.update()
+        self.update_images()
 
     def prevImage(self):
         self.n -= 1
         if self.n <= 0:
             return
-        self.imageCanvas.image = self.images[self.n]
+        self.update_images()
+
+    def update_images(self):
+        for i in reversed(range(self.roiLayout.count())): 
+
+            self.roiLayout.itemAt(i).widget().setParent(None)
+
+        ROIs = filters.high_pass_filter(self.images[self.n])
+        #ROIs = filters.false_positive_filter(ROIs)
+        x = 0
+        y = 0
+        for roi in ROIs:
+            self.roiLayout.addWidget(roi_canvas, y, x)
+            x += 1
+            if x > 2:
+                x = 0
+                y += 1
+            
+        self.imageCanvas.setImage(cv2.imread(self.images[self.n].filename[:-3] + 'lowquality.jpg'))
         self.update()
 
     def keyPressEvent(self, evt):
@@ -80,9 +103,14 @@ class MainWindow(QWidget):
 class ImageCanvas(QWidget):
     def __init__(self, parent=None, image=None):
         super(ImageCanvas, self).__init__(parent)
-        if(image):
-            self.image = cv2.imread(image.filename[:-3] + 'jpg')
-        
+        self.setImage(image)
+
+    def setImage(self, image):
+        try:
+            self.image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        except:
+            pass
+
     def paintEvent(self, evt):
         painter = QPainter()
         painter.begin(self)
@@ -91,61 +119,29 @@ class ImageCanvas(QWidget):
         new_height = int(new_width*self.image.shape[0]/self.image.shape[1])
         painter.drawImage(0, 0, cvImgToQImg(cv2.resize(self.image, (new_width, new_height))))
 
-class ROICanvas(QWidget):
-    def __init__(self, parent=None, flight_number=0):
-        super(ROICanvas, self).__init__(parent)
-        
-        self.mQImages = []
-        self.ROIs = []
-        self.images = []
-        self.currentImage = None
-        self.roi_height = 0
-
-
-    def show_image_ROIs(self):
-        del self.mQImages[:]
-        self.mQImages = []
-        self.ROIs = filters.high_pass_filter(self.images[self.n])
-        #ROIs = filters.false_positive_filter(ROIs)
-        self.currentImage = cv2.imread(self.images[self.n].filename[:-3]+'jpg')
-
-        for roi in self.ROIs:
-            image = cv2.resize(roi.roi, (60,60))
-            self.mQImages.append(cvImgToQImg(image))
-        self.parent().repaint()
+class ROICanvas(ImageCanvas):
+    def __init__(self, roi):
+        super().__init__(image=roi.roi)
+        self.target = False
+        self.roi = roi
+        self.setMinimumHeight(70)
+        self.setMinimumWidth(70)
+        self.setMaximumHeight(self.roi.roi.shape[0] if self.roi.roi.shape[0] >= 70 else 70)
+        self.setMaximumWidth(self.roi.roi.shape[1] if self.roi.roi.shape[1] >= 70 else 70)
+    def mousePressEvent(self, evt):
+        super(ROICanvas, self).mousePressEvent(evt)
+        self.target = not self.target
+        self.repaint()
 
     def paintEvent(self, evt):
         painter = QPainter()
         painter.begin(self)
 
-        new_width = self.geometry().width()
-        new_height = int(new_width*self.currentImage.shape[0]/self.currentImage.shape[1])
-        painter.drawImage(0, 0, cvImgToQImg(cv2.resize(self.currentImage, (new_width, new_height))))
+        if self.target:
+            painter.setBrush(QColor(0, 255, 0))
+            painter.drawRect(QRect(-1, -1, self.geometry().width()+2, self.geometry().height()+2))
+        painter.drawImage(5, 5, cvImgToQImg(cv2.resize(self.image, (60, 60))))
 
-        x_off = 0
-        y_off = new_height + 10
-        self.roi_height = y_off
-    
-        for img, roi in zip(self.mQImages, self.ROIs):
-            if not roi.target:
-                painter.drawImage(x_off, y_off, img)
-            x_off += 70
-            if x_off + 70 >= self.geometry().width():
-                x_off = 0
-                y_off += 70
-        painter.end()
-
-    def mousePressEvent(self, evt):
-        super(ROICanvas, self).mousePressEvent(evt)
-        y = int((evt.y()-self.roi_height)/70)
-        if y < 0:
-            return
-        idx = (y * int(self.geometry().width()/70)) + int(evt.x()/70)
-        try:
-            self.ROIs[idx].target = not (self.ROIs[idx].target)
-            self.repaint()
-        except:
-            return
 def cvImgToQImg(cvImg):
     return QImage(cvImg.data, cvImg.shape[1], cvImg.shape[0], cvImg.strides[0], QImage.Format_RGB888)
 
