@@ -15,6 +15,9 @@ class MainWindow(QWidget):
         self.images = []
         self.ROI_canvases = []
 
+        self.t_n = 0
+        self.fp_n = 0
+
         self.initUI()
         try:
             flight = ARC.Flight(flight_number)
@@ -80,15 +83,21 @@ class MainWindow(QWidget):
 
     def update_images(self):
         for i in reversed(range(self.roiLayout.count())): 
+            if(self.roiLayout.itemAt(i).widget().target):
+                cv2.imwrite("targets/t{}.jpg".format(self.t_n), cv2.cvtColor(self.roiLayout.itemAt(i).widget().image, cv2.COLOR_BGR2RGB))
+                self.t_n += 1
+            else:
+                cv2.imwrite("fp/f{}.jpg".format(self.fp_n), cv2.cvtColor(self.roiLayout.itemAt(i).widget().image, cv2.COLOR_BGR2RGB))
+                self.fp_n += 1
 
             self.roiLayout.itemAt(i).widget().setParent(None)
 
-        ROIs = filters.high_pass_filter(self.images[self.n])
+        ROIs = filters.high_pass_filter(self.images[self.n], goal=1000)
         #ROIs = filters.false_positive_filter(ROIs)
         x = 0
         y = 0
         for roi in ROIs:
-            self.roiLayout.addWidget(roi_canvas, y, x)
+            self.roiLayout.addWidget(ROICanvas(roi), y, x)
             x += 1
             if x > 2:
                 x = 0

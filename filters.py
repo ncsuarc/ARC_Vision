@@ -47,17 +47,19 @@ def high_pass_filter(arc_image, goal=600):
         error = goal - n
         error_total += error
         step = 0.03635*error + 0.052*error_total + 0.004*(error-error_prev)
+        if step > 50:
+            step = 50
+        elif step < -50:
+            step = -50
         #print("\tContours:{}  Low:{} High:{} Step:{}".format(n, canny_low, canny_high, step))
         if abs(error) < 15:
             break
-        #elif abs(error) < 30:
-        #    canny_low += step
         else:
             canny_high -= step
             if canny_low >= canny_high:
                 canny_low -= step
 
-    print("{} iterations/image, {} initial".format(num_iter/num_images, avg_first/num_images))
+    #print("{} iterations/image, {} initial".format(num_iter/num_images, avg_first/num_images))
 
     cnt_out = np.zeros(image.shape, np.uint8)
     for cnt in contours:
