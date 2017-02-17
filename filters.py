@@ -51,7 +51,6 @@ def high_pass_filter(arc_image, goal=600):
             step = 50
         elif step < -50:
             step = -50
-        #print("\tContours:{}  Low:{} High:{} Step:{}".format(n, canny_low, canny_high, step))
         if abs(error) < 15:
             break
         else:
@@ -59,9 +58,6 @@ def high_pass_filter(arc_image, goal=600):
             if canny_low >= canny_high:
                 canny_low -= step
 
-    #print("{} iterations/image, {} initial".format(num_iter/num_images, avg_first/num_images))
-
-    cnt_out = np.zeros(image.shape, np.uint8)
     for cnt in contours:
         try:
             roi = ROI.ROI(arc_image, image, cnt)
@@ -82,3 +78,57 @@ def false_positive_filter(old_ROIs):
         if(label):
             new_ROIs.append(roi)
     return new_ROIs
+
+def get_target_info(img):
+    #Use KMeans to segment the image into distinct colors
+    Z = img.reshape((-1,3))
+    Z = np.float32(Z)
+    criteria = (cv2.TERM_CRITERIA_EPS, 0, 0.25)
+    compactness,labels,centers = cv2.kmeans(Z,4,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS ) 
+    
+    centers = np.uint8(centers)
+    res = centers[labels.flatten()]
+    res = res.reshape((img.shape))
+    
+    #Edge Detect
+    canny = cv2.Canny(res, 100, 200)
+    (_, contours, hierarchy) = cv2.findContours(canny,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    
+    #Find the largest contour in the image, which will presumably be the target
+    largest_index = 0
+    largest_area = 0
+    
+    for c, i in zip(contours,range(len(contours))):
+        area = cv2.contourArea(c)
+        if area > largest_area:
+            largest_index = i
+            largest_area = area
+    
+    #Find the child of the target contour, which will be the letter
+    hierarchy = hierarchy[0]
+    shape_h = hierarchy[largest_index]
+    shape_inner_h = hierarchy[shape_h[2]]
+    letter_cnt = contours[shape_inner_h[2]]
+    
+    #Separate the letter and shape into different images
+    letter_mask = np.zeros(img.shape[0:2], np.uint8)
+    cv2.drawContours(letter_mask, [letter_cnt], 0, 255, -1)
+    kernel = np.ones((3,3),np.uint8)
+    letter_mask = cv2.erode(letter_mask, kernel, iterations = 1)
+    letter_color = cv2.mean(img, letter_mask)
+    letter_color = letter_color[0:3]
+    
+    shape_mask = np.zeros(img.shape[0:2], np.uint8)
+    cv2.drawContours(shape_mask, contours, largest_index, 255, -1)
+    shape_mask_cut = shape_mask - letter_mask
+    shape_color = cv2.mean(img, shape_mask_cut)
+    shape_color = shape_color[0:3]
+    
+    return (shape_mask, shape_color), (letter_mask, letter_color)
+
+def draw_mask_color(mask, color):
+    img = np.zeros(mask.shape.append(len(color)), np.uint8)
+    
+    img[:,:] = color
+   
+    return cv2.bitwise_and(img, img, mask=mask)
