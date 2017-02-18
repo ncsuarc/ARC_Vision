@@ -17,7 +17,7 @@ class Model:
         
         self.predictor = self.conv_net()
         
-        self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.predictor, self.y_one_hot))
+        self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.predictor, labels=self.y_one_hot))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost)
    
         self.correct_pred = tf.equal(tf.argmax(self.predictor, 1), tf.argmax(self.y_one_hot, 1)) 
