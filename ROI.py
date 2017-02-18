@@ -24,7 +24,6 @@ class ROI():
         self.hull = hull
         self.arc_image = arc_image
         self.image = image
-        self.target = False
         if not self.validate():
             raise ValueError("Failed validation test.")
     
@@ -35,16 +34,14 @@ class ROI():
         rect_cnt = np.int0(rect_cnt)
         rect_area = cv2.contourArea(rect_cnt)
 
-        if (rect_area*.7) > hull_area:
+        if (rect_area*.5) > hull_area:
             return False
-
         #Calculate aspect ratio of rotated bounding box
         tl, tr, br, bl = self.order_points(rect_cnt)
         if self.dist(tl, bl) == 0:
             ar = 0
         else:
             ar = self.dist(tl, tr)/self.dist(tl, bl) 
-        
         if not (0.3 < ar < 3):
             return False
         
