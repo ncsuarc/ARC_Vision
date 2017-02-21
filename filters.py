@@ -4,61 +4,46 @@ import math
 import ROI
 from roi_cnn.check_targets import check_targets
 
-def high_pass_filter(arc_image, goal=600):
-    try:
-        num_iter
-        num_images
-        avg_first
-    except NameError:
-        global num_iter
-        global num_images
-        global avg_first
-        num_iter = 0
-        num_images = 0
-        avg_first = 0.0
-    num_images += 1
-    filename = arc_image.filename
-    image = cv2.imread(filename[:-3] + 'jpg')
-
-    ROIs = []
-    
+def get_contours(image, goal):
     image_blur = cv2.GaussianBlur(image, (5, 5), 0)
 
     canny_low = 100
-    canny_high = 325
-    error = 0
-    error_total = 0
-    error_prev = 0
-    first = True
+    canny_high = 250
+    
     for i in range(20):
-        num_iter += 1
         canny = cv2.Canny(image_blur, canny_low, canny_high)
 
         (_, contours, _) = cv2.findContours(canny,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
         n = len(contours)
         
-        if first:
-            avg_first += n
-            error_prev = goal - n
-            first = False
-        else:
-            error_prev = error
-
         error = goal - n
-        error_total += error
-        step = 0.03635*error + 0.052*error_total + 0.004*(error-error_prev)
-        if step > 50:
-            step = 50
-        elif step < -50:
-            step = -50
-        if abs(error) < 15:
+        step = 0.08*error 
+        
+        step = coerceVar(step, -50, 50)
+        
+        if abs(error) < 0.1*goal: #10% margin of error
             break
         else:
             canny_high -= step
+            canny_high = coerceVar(canny_high, 0, 500)
             if canny_low >= canny_high:
                 canny_low -= step
+                canny_low = coerceVar(canny_low, 0, canny_high)
+    
+    return contours
 
-    for cnt in contours:
+def coerceVar(var, minimum, maximum):
+    if var < minimum:
+        return minimum
+    elif var > maximum:
+        return maximum
+    else:
+        return var
+
+def high_pass_filter(arc_image, goal=600):
+    image = cv2.imread(arc_image.high_quality_jpg)
+    ROIs = []
+    for cnt in get_contours(image, goal):
         try:
             roi = ROI.ROI(arc_image, image, cnt)
             ROIs.append(roi)

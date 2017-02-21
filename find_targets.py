@@ -92,7 +92,7 @@ class MainWindow(QWidget):
 
             self.roiLayout.itemAt(i).widget().setParent(None)
 
-        ROIs = filters.high_pass_filter(self.images[self.n], goal=1000)
+        ROIs = filters.high_pass_filter(self.images[self.n], goal=600)
         #ROIs = filters.false_positive_filter(ROIs)
         x = 0
         y = 0
