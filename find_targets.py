@@ -1,8 +1,10 @@
 import numpy as np
 import cv2
 import ARC
+import os
+
 from PyQt5.QtCore import QRect
-from PyQt5.QtWidgets import (QWidget, QPushButton, QScrollArea, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout)
+from PyQt5.QtWidgets import (QWidget, QPushButton, QScrollArea, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QFileDialog)
 from PyQt5.QtGui import (QImage, QPainter, QColor)
 
 import filters
@@ -11,9 +13,10 @@ class MainWindow(QWidget):
     def __init__(self, parent=None, flight_number=0):
         super(MainWindow, self).__init__(parent)
 
+        self.saveDirectory = str(QFileDialog.getExistingDirectory(self, "Select a directory to save the output in..."))
+
         self.flight_number = flight_number
         self.images = []
-        self.ROI_canvases = []
 
         self.t_n = 0
         self.fp_n = 0
@@ -82,21 +85,28 @@ class MainWindow(QWidget):
         self.update_images()
 
     def update_images(self):
+        if not os.path.isdir(self.saveDirectory + "/targets"):
+            os.mkdir(self.saveDirectory + "/targets")
+        if not os.path.isdir(self.saveDirectory + "/fp"):
+            os.mkdir(self.saveDirectory + "/fp")
         for i in reversed(range(self.roiLayout.count())): 
             if(self.roiLayout.itemAt(i).widget().target):
-                cv2.imwrite("targets/t{}.jpg".format(self.t_n), cv2.cvtColor(self.roiLayout.itemAt(i).widget().image, cv2.COLOR_BGR2RGB))
+                cv2.imwrite(self.saveDirectory + "/targets/t{}.jpg".format(self.t_n), cv2.cvtColor(self.roiLayout.itemAt(i).widget().image, cv2.COLOR_BGR2RGB))
                 self.t_n += 1
             else:
-                cv2.imwrite("fp/f{}.jpg".format(self.fp_n), cv2.cvtColor(self.roiLayout.itemAt(i).widget().image, cv2.COLOR_BGR2RGB))
+                cv2.imwrite(self.saveDirectory + "/fp/f{}.jpg".format(self.fp_n), cv2.cvtColor(self.roiLayout.itemAt(i).widget().image, cv2.COLOR_BGR2RGB))
                 self.fp_n += 1
 
             self.roiLayout.itemAt(i).widget().setParent(None)
 
         ROIs = filters.high_pass_filter(self.images[self.n], goal=600)
-        #ROIs = filters.false_positive_filter(ROIs)
+        target_ROIs = filters.false_positive_filter(ROIs)
         x = 0
         y = 0
         for roi in ROIs:
+            new_roi_canvas = ROICanvas(roi)
+            if roi in target_ROIs:
+                new_roi_canvas.target=True
             self.roiLayout.addWidget(ROICanvas(roi), y, x)
             x += 1
             if x > 2:
@@ -135,8 +145,8 @@ class ROICanvas(ImageCanvas):
         self.roi = roi
         self.setMinimumHeight(70)
         self.setMinimumWidth(70)
-        self.setMaximumHeight(self.roi.roi.shape[0] if self.roi.roi.shape[0] >= 70 else 70)
-        self.setMaximumWidth(self.roi.roi.shape[1] if self.roi.roi.shape[1] >= 70 else 70)
+        self.setMaximumHeight(70)
+        self.setMaximumWidth(70)
     def mousePressEvent(self, evt):
         super(ROICanvas, self).mousePressEvent(evt)
         self.target = not self.target
