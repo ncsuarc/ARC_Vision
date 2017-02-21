@@ -3,14 +3,17 @@ import tensorflow as tf
 import numpy as np
 import roi_model
 
-from os import listdir
+import argparse
+from os import listdir, path
+
+parser = argparse.ArgumentParser(description='Search images for targets.')
+parser.add_argument("-i", "--input", required=True, help="Directory to search")
+args = vars(parser.parse_args())
 
 images = []
 
-for f in listdir("roi"):
-    if not f.endswith(".jpg"):
-        continue
-    img = cv2.imread("roi/"+f)
+for f in listdir(args['input']):
+    img = cv2.imread(path.join(args['input'], f))
     img = cv2.resize(img, (60,60))
     images.append(img.flatten())
 
