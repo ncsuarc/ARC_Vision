@@ -4,6 +4,9 @@ import math
 import ROI
 from roi_cnn.check_targets import check_targets
 
+def get_targets(arcImage):
+    return false_positive_filter(high_pass_filter(arcImage))
+
 def get_contours(image, goal):
     image_blur = cv2.GaussianBlur(image, (5, 5), 0)
 
