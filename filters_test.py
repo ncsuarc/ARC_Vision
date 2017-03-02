@@ -24,15 +24,25 @@ class FilterTest(unittest.TestCase):
     def test_get_contours(self):
         for img, i in zip(self.target_images, range(len(self.target_images))):
             with self.subTest(i=i):
-                
                 start_time = time.time()
-                ROIs = filters.get_contours(cv2.imread(img.high_quality_jpg), 300)
+                rois = filters.get_contours(cv2.imread(img.high_quality_jpg), goal=300)
                 self.assertLess((time.time()-start_time), 2) # Ensure the operation took less than 2 seconds
-                self.assertLess(len(ROIs), 330)
-                self.assertGreater(len(ROIs), 270)
+                self.assertLess(len(rois), 330)
+                self.assertGreater(len(rois), 270)
+    
+    def test_get_contours_canny(self):
+        cv2.namedWindow('Display', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('Display', 1920, 1080)
+        for img in self.target_images:
+            (rois, canny) = filters.get_contours(cv2.imread(img.high_quality_jpg), goal=300, getCanny=True)
+            cv2.imshow('Display', canny)
+            cv2.waitKey()
 
     def test_high_pass_filter(self):
         return
 
 if __name__ == '__main__':
-    unittest.main()
+    suite = unittest.TestSuite()
+    suite.addTest(FilterTest("test_get_contours"))
+    runner = unittest.TextTestRunner()
+    runner.run(suite)

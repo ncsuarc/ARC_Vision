@@ -1,13 +1,13 @@
 import cv2
 import numpy as np
 import math
-import ROI
+import roi
 from roi_cnn.check_targets import check_targets
 
 def get_targets(arcImage):
     return false_positive_filter(high_pass_filter(arcImage))
 
-def get_contours(image, goal):
+def get_contours(image, goal, getCanny=False):
     image_blur = cv2.GaussianBlur(image, (5, 5), 0)
 
     canny_low = 100
@@ -32,7 +32,8 @@ def get_contours(image, goal):
             if canny_low >= canny_high:
                 canny_low -= step
                 canny_low = coerceVar(canny_low, 0, canny_high)
-    
+    if getCanny:
+        return (contours, canny)
     return contours
 
 def coerceVar(var, minimum, maximum):
@@ -45,15 +46,15 @@ def coerceVar(var, minimum, maximum):
 
 def high_pass_filter(arc_image, goal=600):
     image = cv2.imread(arc_image.high_quality_jpg)
-    ROIs = []
+    rois = []
     for cnt in get_contours(image, goal):
         try:
-            roi = ROI.ROI(arc_image, image, cnt)
-            ROIs.append(roi)
+            roi = roi.ROI(arc_image, image, cnt)
+            rois.append(roi)
         except ValueError as e:
             continue
    
-    return ROIs
+    return rois
 
 def false_positive_filter(old_ROIs):
     if len(old_ROIs) == 0:
