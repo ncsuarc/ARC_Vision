@@ -4,11 +4,10 @@ import ARC
 from collections import deque
 
 from PyQt5.QtCore import (Qt, QObject, QRunnable, QThreadPool, QTimer, pyqtSignal, QAbstractListModel, QModelIndex)
-from PyQt5.QtWidgets import (QWidget, QListView, QPushButton, QScrollArea, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QFileDialog, QLabel)
+from PyQt5.QtWidgets import (QWidget, QListView, QPushButton, QScrollArea, QApplication, QHBoxLayout, QVBoxLayout, QFileDialog, QLabel)
 
 from ui_utils import *
 import filters
-
 
 class MainWindow(QWidget):
     def __init__(self, parent=None, flight_number=0, threads=6):
@@ -37,7 +36,7 @@ class MainWindow(QWidget):
         self.targetDisplayScroll = QScrollArea(self)
         self.targetDisplayScroll.setWidgetResizable(True)
         self.targetDisplay = QWidget()
-        self.targetLayout = QGridLayout()
+        self.targetLayout = QVBoxLayout()
         self.targetDisplay.setLayout(self.targetLayout)
         self.targetDisplayScroll.setWidget(self.targetDisplay)
 
@@ -107,7 +106,7 @@ class MainWindow(QWidget):
         self.finishedListModel.addItem(self.queuedImages[image_id])
 
     def newTarget(self, target_image):
-        print(target_image)
+        self.targetLayout.addWidget(ROICanvas(target_image))
 
     def keyPressEvent(self, evt):
         super(MainWindow, self).keyPressEvent(evt)
@@ -120,6 +119,7 @@ class StringListModel(QAbstractListModel):
     def __init__(self, parent=None):
         super(StringListModel, self).__init__()
         self._strings = []
+        self._removed_strings = []
 
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
@@ -162,6 +162,9 @@ class StringListModel(QAbstractListModel):
         return True
     
     def addItem(self, string):
+        if string in self._removed_strings:
+            self._removed_strings.remove(string)
+            return
         index = self.rowCount()
         self.insertRows(index, 1)
         self.setData(self.index(index), string)
@@ -170,15 +173,14 @@ class StringListModel(QAbstractListModel):
         try:
             return self.removeRows(self._strings.index(string), 1)
         except ValueError:
-            print("Failed to remove %s from:" % string)
-            print(self._strings)
+            self._removed_strings.append(string)
             return False
 
 class ImageProcessorConnector(QObject):
 
     started = pyqtSignal()
     finished = pyqtSignal()
-    new_target = pyqtSignal(np.ndarray)
+    new_target = pyqtSignal('PyQt_PyObject')
 
     def __init__(self):
         super(ImageProcessorConnector, self).__init__()
@@ -198,7 +200,7 @@ class ImageProcessor(QRunnable):
             self._emitter.started.emit()
             rois = filters.get_targets(self.image)
             for roi in rois:
-                self._emitter.new_target.emit(roi.roi)
+                self._emitter.new_target.emit(roi)
             self._emitter.finished.emit()
         except Exception as e:
             print(e)
