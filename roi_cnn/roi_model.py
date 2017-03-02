@@ -145,7 +145,14 @@ class Model:
         print("Final checkpoint saved in file: %s" % save_path)
 
     def test(self, sess, images):
-        return sess.run(self.predictor, feed_dict={self.x: images, self.keep_prob: 1.})
+        labels = []
+        step = 0
+        while step * self.batch_size < len(images):
+            batch_x = images[step*self.batch_size:(step+1)*self.batch_size]
+            batch_y = labels[step*self.batch_size:(step+1)*self.batch_size]
+            labels.extend(sess.run(self.predictor, feed_dict={self.x: images, self.keep_prob: 1.}))
+            step += 1
+        return labels 
 
 #Wrappers
 def conv2d(x, W, b):

@@ -13,6 +13,8 @@ args = vars(parser.parse_args())
 images = []
 
 for f in listdir(args['input']):
+    if not (f.endswith('jpg') or f.endswith('png')):
+        continue
     img = cv2.imread(path.join(args['input'], f))
     img = cv2.resize(img, (60,60))
     images.append(img.flatten())
