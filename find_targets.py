@@ -21,6 +21,8 @@ class MainWindow(QWidget):
         self.t_n = 0
         self.fp_n = 0
 
+        self.image_flagged = False
+
         self.initUI()
         try:
             flight = ARC.Flight(flight_number)
@@ -52,13 +54,14 @@ class MainWindow(QWidget):
         self.roiDisplayScroll.setWidget(self.roiDisplay)
         
         nextButton = QPushButton("Next")
-        prevButton = QPushButton("Previous")
-        
         nextButton.clicked.connect(self.nextImage)
-        prevButton.clicked.connect(self.prevImage)
-        
+
+        self.flagButton = QPushButton("Flag Image")
+        self.flagButton.setCheckable(True)
+        self.flagButton.clicked[bool].connect(self.flagImage)
+
         ctl = QHBoxLayout()
-        ctl.addWidget(prevButton)
+        ctl.addWidget(self.flagButton)
         ctl.addStretch(1)
         ctl.addWidget(nextButton)
         
@@ -75,14 +78,12 @@ class MainWindow(QWidget):
     def nextImage(self): 
         self.n += 1
         if self.n >= len(self.images):
+            QApplication.quit()
             return
         self.update_images()
 
-    def prevImage(self):
-        self.n -= 1
-        if self.n <= 0:
-            return
-        self.update_images()
+    def flagImage(self, flagged):
+        self.image_flagged = not self.image_flagged
 
     def update_images(self):
         if not os.path.isdir(self.saveDirectory + "/targets"):
@@ -98,6 +99,13 @@ class MainWindow(QWidget):
                 self.fp_n += 1
 
             self.roiLayout.itemAt(i).widget().setParent(None)
+
+        if self.image_flagged:
+            with open(self.saveDirectory + "/flagged.txt", "a") as flaggedFile:
+                flaggedFile.write(self.images[self.n-1].filename + '\n')
+
+        self.flagButton.setChecked(False)
+        self.image_flagged = False
 
         ROIs = filters.high_pass_filter(self.images[self.n], goal=600)
         target_ROIs = filters.false_positive_filter(ROIs)
