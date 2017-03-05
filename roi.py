@@ -5,36 +5,34 @@ import filters
 
 class ROI():
     def __init__(self, arc_image, image, cnt):
-        hull = cv2.convexHull(cnt)
-
-        x, y, w, h = cv2.boundingRect(hull)
+        x, y, w, h = cv2.boundingRect(cnt)
         real_width = w*arc_image.width_m_per_px
         real_height = h*arc_image.height_m_per_px
         if not ((0.25 <= real_width <= 2.0) and (0.25 <= real_height <= 2.0)):
             raise ValueError("Failed size test.")
             
-        rect = cv2.minAreaRect(hull)
+        rect = cv2.minAreaRect(cnt)
 
         roi_mask = np.zeros(image.shape[0:2], np.uint8)
-        cv2.drawContours(roi_mask, [hull], 0, 255, -1)
+        cv2.drawContours(roi_mask, [cnt], 0, 255, -1)
         image_masked = cv2.bitwise_and(image, image, mask=roi_mask)
         
         self.roi = image_masked[y:y+h, x:x+w]
         self.rect = rect
-        self.hull = hull
+        self.cnt = cnt
         self.arc_image = arc_image
         self.image = image
         if not self.validate():
             raise ValueError("Failed validation test.")
     
     def validate(self):
-        #check area of the hull compared to the area of the rect
-        hull_area = cv2.contourArea(self.hull)
+        #check area of the contour compared to the area of the rect
+        cnt_area = cv2.contourArea(self.cnt)
         rect_cnt = cv2.boxPoints(self.rect)
         rect_cnt = np.int0(rect_cnt)
         rect_area = cv2.contourArea(rect_cnt)
 
-        if (rect_area*.5) > hull_area:
+        if (rect_area*.5) > cnt_area:
             return False
         #Calculate aspect ratio of rotated bounding box
         tl, tr, br, bl = self.order_points(rect_cnt)

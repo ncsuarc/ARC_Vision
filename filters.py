@@ -49,8 +49,8 @@ def high_pass_filter(arc_image, goal=600):
     rois = []
     for cnt in get_contours(image, goal):
         try:
-            roi = roi.ROI(arc_image, image, cnt)
-            rois.append(roi)
+            region = roi.ROI(arc_image, image, cnt)
+            rois.append(region)
         except ValueError as e:
             continue
    
@@ -61,11 +61,11 @@ def false_positive_filter(old_ROIs):
         return []
 
     new_ROIs = []
-    images = [roi.roi for roi in old_ROIs] 
+    images = [region.roi for region in old_ROIs] 
     labels = check_targets(images)
-    for roi, label in zip(old_ROIs, labels):
+    for region, label in zip(old_ROIs, labels):
         if(label):
-            new_ROIs.append(roi)
+            new_ROIs.append(region)
     return new_ROIs
 
 def get_target_info(img):
