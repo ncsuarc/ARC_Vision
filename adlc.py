@@ -92,8 +92,8 @@ class MainWindow(QWidget):
         self.waitingListModel.addItem(image.high_quality_jpg)
         self.queuedImages[image.image_id] = image.high_quality_jpg
         processor = ImageProcessor(image,
-                lambda: self.processingFinished(image.image_id),
                 lambda: self.processingStarted(image.image_id),
+                lambda: self.processingFinished(image.image_id),
                 self.newTarget)
         self.pool.start(processor)
 
@@ -112,7 +112,7 @@ class MainWindow(QWidget):
         super(MainWindow, self).keyPressEvent(evt)
     
     def closeEvent(self, event):
-        if not self.pool.waitForDone(2000):
+        if not self.pool.waitForDone(4000):
             print('Processing killed before completion.')
 
 class StringListModel(QAbstractListModel):
@@ -186,7 +186,6 @@ class ImageProcessorConnector(QObject):
         super(ImageProcessorConnector, self).__init__()
 
 class ImageProcessor(QRunnable): 
-
     def __init__(self, image, started_callback, finished_callback, new_target_callback):
         super(ImageProcessor, self).__init__()
         self.image = image
