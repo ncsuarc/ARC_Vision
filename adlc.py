@@ -10,11 +10,12 @@ from ui_utils import *
 import filters
 
 class MainWindow(QWidget):
-    def __init__(self, parent=None, flight_number=0, threads=6):
+    def __init__(self, parent=None, flight_number=0, threads=4):
         super(MainWindow, self).__init__(parent)
 
         self.flight_number = flight_number
-        
+        self.threads = threads
+
         self.flight = ARC.Flight(flight_number)
 
         self.initUI()
@@ -29,9 +30,11 @@ class MainWindow(QWidget):
         self.pool = QThreadPool.globalInstance()
         self.pool.setMaxThreadCount(threads)
 
-        self.images = deque(self.flight.all_images())
+        self.images = deque(self.flight.all_images()) 
         self.queuedImages = {}
-        self.imageIndexes = {}
+
+        self.queueCount = 0
+
     def initUI(self):
         self.targetDisplayScroll = QScrollArea(self)
         self.targetDisplayScroll.setWidgetResizable(True)
@@ -81,14 +84,17 @@ class MainWindow(QWidget):
 
         try:
             hq_id = int(self.hq_listener.next(timeout=0.05))
-            self.processImage(self.flight.image(hq_id))
+            self.images.append(self.flight.image(hq_id))
         except StopIteration:
             pass
 
-        if(len(self.images) > 0):
-            self.processImage(self.images.popleft())
+        self.processImages()
 
-    def processImage(self, image):
+    def processImages(self):
+        if self.queueCount < self.threads*2 and len(self.images) > 0:
+            self.startImageProcessing(self.images.popleft())
+
+    def startImageProcessing(self, image):
         self.waitingListModel.addItem(image.high_quality_jpg)
         self.queuedImages[image.image_id] = image.high_quality_jpg
         processor = ImageProcessor(image,
@@ -96,6 +102,7 @@ class MainWindow(QWidget):
                 lambda: self.processingFinished(image.image_id),
                 self.newTarget)
         self.pool.start(processor)
+        self.queueCount += 1
 
     def processingStarted(self, image_id):
         self.waitingListModel.removeItem(self.queuedImages[image_id])
@@ -104,6 +111,7 @@ class MainWindow(QWidget):
     def processingFinished(self, image_id):
         self.processingListModel.removeItem(self.queuedImages[image_id])
         self.finishedListModel.addItem(self.queuedImages[image_id])
+        self.queueCount -= 1
 
     def newTarget(self, target_image):
         self.targetLayout.addWidget(ROICanvas(target_image))
