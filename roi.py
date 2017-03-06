@@ -8,26 +8,29 @@ class ROI():
         x, y, w, h = cv2.boundingRect(cnt)
         real_width = w*arc_image.width_m_per_px
         real_height = h*arc_image.height_m_per_px
+
         if not ((0.25 <= real_width <= 2.0) and (0.25 <= real_height <= 2.0)):
             raise ValueError("Failed size test.")
-            
-        rect = cv2.minAreaRect(cnt)
+
+        hull = cv2.convexHull(cnt)
+        rect = cv2.minAreaRect(hull)
+
+        self.rect = rect
+        self.hull = hull
+        if not self.validate():
+            raise ValueError("Failed validation test.")
 
         roi_mask = np.zeros(image.shape[0:2], np.uint8)
-        cv2.drawContours(roi_mask, [cnt], 0, 255, -1)
+        cv2.drawContours(roi_mask, [hull], 0, 255, -1)
         image_masked = cv2.bitwise_and(image, image, mask=roi_mask)
         
         self.roi = image_masked[y:y+h, x:x+w]
-        self.rect = rect
-        self.cnt = cnt
         self.arc_image = arc_image
         self.image = image
-        if not self.validate():
-            raise ValueError("Failed validation test.")
     
     def validate(self):
         #check area of the contour compared to the area of the rect
-        cnt_area = cv2.contourArea(self.cnt)
+        cnt_area = cv2.contourArea(self.hull)
         rect_cnt = cv2.boxPoints(self.rect)
         rect_cnt = np.int0(rect_cnt)
         rect_area = cv2.contourArea(rect_cnt)

@@ -23,13 +23,6 @@ for f in files:
     images.append(img.flatten())
     labels.append(1)
 
-files = listdir("samples")
-for f in files:
-    img = cv2.imread("samples/"+f)
-    img = cv2.resize(img, (60,60))
-    images.append(img.flatten())
-    labels.append(1)
-
 images = np.array(images)
 labels = np.array(labels)
 rng_state = np.random.get_state()

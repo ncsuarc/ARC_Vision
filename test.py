@@ -4,10 +4,15 @@ import time
 import ARC
 import filters
 import cv2
+import numpy as np
+import roi
 
 class FilterTest(unittest.TestCase):
     @classmethod
     def setUpClass(self):
+        cv2.namedWindow('Display', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('Display', 1920, 1080)
+
         self.flight = ARC.Flight(165)
         self.targets = self.flight.all_targets()
         self.target_images = []
@@ -30,29 +35,40 @@ class FilterTest(unittest.TestCase):
                 self.assertLess(len(rois), 330)
                 self.assertGreater(len(rois), 270)
     
-    def test_roi(self):
-        cv2.namedWindow('Display', cv2.WINDOW_NORMAL)
-        cv2.resizeWindow('Display', 1920, 1080)
-        for img in self.target_images:
-            rois = filters.high_pass_filter(img)
-            for roi in rois:
-                cv2.imshow('Display', roi.roi)
-                cv2.waitKey()
-
-            
     def test_get_contours_canny(self):
-        cv2.namedWindow('Display', cv2.WINDOW_NORMAL)
-        cv2.resizeWindow('Display', 1920, 1080)
         for img in self.target_images:
-            (rois, canny) = filters.get_contours(cv2.imread(img.high_quality_jpg), goal=300, getCanny=True)
-            cv2.imshow('Display', canny)
+            image = cv2.imread(img)
+            (contours, canny) = filters.get_contours(image, goal=600, getCanny=True)
+            canny = cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)
+
+            res = cv2.addWeighted(image, 0.6, canny, 0.4, 0)
+            cv2.imshow('Display', res)
             cv2.waitKey()
 
     def test_high_pass_filter(self):
         return
 
+    def test_get_targets(self):
+#        for img in self.target_images:
+        target = self.flight.all_targets()[-1]
+        images = self.flight.images_near(target.coord, 50)
+        for img in images:
+            for roi in filters.get_targets(img):
+                cv2.imshow('Display', roi.roi)
+                cv2.waitKey()
+        return
+
+    def test_roi(self):
+        target = self.flight.all_targets()[-1]
+        images = self.flight.images_near(target.coord, 50)
+        for img in images:
+            rois = filters.high_pass_filter(img, goal=400)
+            for roi in rois:
+                cv2.imshow('Display', roi.roi)
+                cv2.waitKey()
+
 if __name__ == '__main__':
     suite = unittest.TestSuite()
-    suite.addTest(FilterTest("test_get_contours_canny"))
+    suite.addTest(FilterTest("test_get_targets"))
     runner = unittest.TextTestRunner()
     runner.run(suite)
