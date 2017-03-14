@@ -4,21 +4,26 @@ import numpy as np
 
 import roi_model
 
+import argparse
 from os import listdir
 from random import shuffle
 
+parser = argparse.ArgumentParser(description='Search images for targets.')
+parser.add_argument("-i", "--input", required=True, help="Directory to search")
+args = vars(parser.parse_args())
+
 images = []
 labels = []
-files = listdir("fp")
+files = listdir(args['input'] + "/fp")
 for f in files:
-    img = cv2.imread("fp/"+f)
+    img = cv2.imread(args['input'] + "/fp/"+f)
     img = cv2.resize(img, (60,60))
     images.append(img.flatten())
     labels.append(0)
 
-files = listdir("targets")
+files = listdir(args['input'] + "/targets")
 for f in files:
-    img = cv2.imread("targets/"+f)
+    img = cv2.imread(args['input'] + "/targets/"+f)
     img = cv2.resize(img, (60,60))
     images.append(img.flatten())
     labels.append(1)
