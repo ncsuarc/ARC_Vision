@@ -1,5 +1,7 @@
 import numpy as np
+import cv2
 import ARC
+import os
 
 from collections import deque
 
@@ -120,7 +122,30 @@ class MainWindow(QWidget):
         super(MainWindow, self).keyPressEvent(evt)
     
     def closeEvent(self, event):
-        if not self.pool.waitForDone(4000):
+        saveDirectory = str(QFileDialog.getExistingDirectory(self, "Select a directory to save the output in..."))
+
+        try:
+            if not os.path.isdir(saveDirectory + "/targets"):
+                os.mkdir(saveDirectory + "/targets")
+            if not os.path.isdir(saveDirectory + "/fp"):
+                os.mkdir(saveDirectory + "/fp")
+
+            t_n = 0
+            fp_n = 0
+            print('There are %d ROIs.' % self.targetLayout.count())
+
+            for i in reversed(range(self.targetLayout.count())): 
+                local_widget = self.targetLayout.itemAt(i).widget()
+                if(local_widget.target):
+                    local_widget.saveRoiImage(saveDirectory + "/targets/t{}.jpg".format(t_n))
+                    t_n += 1
+                else:
+                    local_widget.saveRoiImage(saveDirectory + "/fp/f{}.jpg".format(fp_n))
+                    fp_n += 1
+        except:
+            pass
+
+        if not self.pool.waitForDone():
             print('Processing killed before completion.')
 
 class StringListModel(QAbstractListModel):
@@ -196,6 +221,9 @@ class ImageProcessorConnector(QObject):
 class ImageProcessor(QRunnable): 
     def __init__(self, image, started_callback, finished_callback, new_target_callback):
         super(ImageProcessor, self).__init__()
+        
+        self.setAutoDelete(True)
+
         self.image = image
         self._emitter = ImageProcessorConnector()
         self._emitter.started.connect(started_callback)
