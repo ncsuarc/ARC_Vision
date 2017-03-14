@@ -46,6 +46,13 @@ class FilterTest(unittest.TestCase):
             cv2.waitKey()
 
     def test_high_pass_filter(self):
+        target = self.flight.all_targets()[-1]
+        images = self.flight.images_near(target.coord, 50)
+        for img in images:
+            rois = filters.high_pass_filter(img)
+            for roi in rois:
+                cv2.imshow('Display', roi.roi)
+                cv2.waitKey()
         return
 
     def test_get_targets(self):
@@ -54,16 +61,6 @@ class FilterTest(unittest.TestCase):
         images = self.flight.images_near(target.coord, 50)
         for img in images:
             for roi in filters.get_targets(img):
-                cv2.imshow('Display', roi.roi)
-                cv2.waitKey()
-        return
-
-    def test_roi(self):
-        target = self.flight.all_targets()[-1]
-        images = self.flight.images_near(target.coord, 50)
-        for img in images:
-            rois = filters.high_pass_filter(img, goal=400)
-            for roi in rois:
                 cv2.imshow('Display', roi.roi)
                 cv2.waitKey()
 
