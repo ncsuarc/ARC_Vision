@@ -25,8 +25,8 @@ class ROI():
         image_masked = cv2.bitwise_and(image, image, mask=roi_mask)
         
         self.roi = image_masked[y:y+h, x:x+w]
+        self.roi_original = image[y:y+h, x:x+w]
         self.arc_image = arc_image
-        self.image = image
     
     def validate(self):
         #check area of the contour compared to the area of the rect
