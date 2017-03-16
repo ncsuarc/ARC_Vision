@@ -2,7 +2,7 @@ import cv2
 import tensorflow as tf
 import numpy as np
 
-import roi_model
+import model
 
 import argparse
 from os import listdir
@@ -10,6 +10,7 @@ from random import shuffle
 
 parser = argparse.ArgumentParser(description='Search images for targets.')
 parser.add_argument("-i", "--input", required=True, help="Directory to search")
+parser.add_argument("-s", "--save-location", required=True, help="Directory to save and load model in.")
 args = vars(parser.parse_args())
 
 images = []
@@ -36,6 +37,5 @@ np.random.set_state(rng_state)
 np.random.shuffle(labels)
 
 # Launch the graph
-with tf.Session() as sess:
-    cnn_model = roi_model.Model(sess, load=True, n_classes=2)
-    cnn_model.train(sess, images, labels)
+cnn_model = model.Model(args['save_location'])
+cnn_model.train(images, labels)
