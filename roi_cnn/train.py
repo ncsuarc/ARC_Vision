@@ -15,15 +15,18 @@ args = vars(parser.parse_args())
 
 images = []
 labels = []
-files = listdir(args['input'] + "/fp")
-for f in files:
+
+for f in listdir(args['input'] + "/fp"):
+    if not (f.endswith('jpg') or f.endswith('png')):
+        continue
     img = cv2.imread(args['input'] + "/fp/"+f)
     img = cv2.resize(img, (60,60))
     images.append(img.flatten())
     labels.append(0)
 
-files = listdir(args['input'] + "/targets")
-for f in files:
+for f in listdir(args['input'] + "/targets"):
+    if not (f.endswith('jpg') or f.endswith('png')):
+        continue
     img = cv2.imread(args['input'] + "/targets/"+f)
     img = cv2.resize(img, (60,60))
     images.append(img.flatten())
@@ -31,6 +34,7 @@ for f in files:
 
 images = np.array(images)
 labels = np.array(labels)
+
 rng_state = np.random.get_state()
 np.random.shuffle(images)
 np.random.set_state(rng_state)
