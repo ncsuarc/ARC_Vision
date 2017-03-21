@@ -91,13 +91,14 @@ class MainWindow(QWidget):
         if not os.path.isdir(self.saveDirectory + "/fp"):
             os.mkdir(self.saveDirectory + "/fp")
         for i in reversed(range(self.roiLayout.count())): 
-            if(self.roiLayout.itemAt(i).widget().target):
-                cv2.imwrite(self.saveDirectory + "/targets/t{}.jpg".format(self.t_n), cv2.cvtColor(self.roiLayout.itemAt(i).widget().image, cv2.COLOR_BGR2RGB))
+            local_widget = self.roiLayout.itemAt(i).widget()
+            if(local_widget.target):
+                local_widget.saveRoiImage(self.saveDirectory + "/targets/t{}.jpg".format(self.t_n))
                 self.t_n += 1
             else:
-                cv2.imwrite(self.saveDirectory + "/fp/f{}.jpg".format(self.fp_n), cv2.cvtColor(self.roiLayout.itemAt(i).widget().image, cv2.COLOR_BGR2RGB))
+                local_widget.saveRoiImage(self.saveDirectory + "/fp/f{}.jpg".format(self.fp_n))
                 self.fp_n += 1
-
+                
             self.roiLayout.itemAt(i).widget().setParent(None)
 
         if self.image_flagged:
