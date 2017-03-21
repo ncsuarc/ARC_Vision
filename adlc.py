@@ -38,6 +38,13 @@ class MainWindow(QWidget):
         self.queueCount = 0
 
     def initUI(self):
+        self.roiDisplayScroll = QScrollArea(self)
+        self.roiDisplayScroll.setWidgetResizable(True)
+        self.roiDisplay = QWidget()
+        self.roiLayout = QVBoxLayout()
+        self.roiDisplay.setLayout(self.roiLayout)
+        self.roiDisplayScroll.setWidget(self.roiDisplay)
+
         self.targetDisplayScroll = QScrollArea(self)
         self.targetDisplayScroll.setWidgetResizable(True)
         self.targetDisplay = QWidget()
@@ -45,8 +52,12 @@ class MainWindow(QWidget):
         self.targetDisplay.setLayout(self.targetLayout)
         self.targetDisplayScroll.setWidget(self.targetDisplay)
 
+        self.imageryLayout = QVBoxLayout()
+        self.imageryLayout.addWidget(self.targetDisplayScroll)
+        self.imageryLayout.addWidget(self.roiDisplayScroll)
+
         self.infoDisplay = QWidget()
-        self.infoDisplay.setMinimumWidth(400)
+        self.infoDisplay.setMinimumWidth(200)
 
         self.waitingList = QListView()
         self.waitingListModel = StringListModel(self.waitingList)
@@ -71,7 +82,7 @@ class MainWindow(QWidget):
         self.infoDisplay.setLayout(self.infoLayout)
 
         hbox = QHBoxLayout(self)
-        hbox.addWidget(self.targetDisplayScroll)
+        hbox.addLayout(self.imageryLayout)
         hbox.addWidget(self.infoDisplay)
 
         self.setLayout(hbox)
@@ -94,6 +105,8 @@ class MainWindow(QWidget):
 
     def processImages(self):
         if self.queueCount < self.threads*2 and len(self.images) > 0:
+            while not self.images[0].nadired:
+                self.images.popleft() #Throw out images that are not nadired
             self.startImageProcessing(self.images.popleft())
 
     def startImageProcessing(self, image):
@@ -116,7 +129,9 @@ class MainWindow(QWidget):
         self.queueCount -= 1
 
     def newTarget(self, target_image):
-        self.targetLayout.addWidget(ROICanvas(target_image))
+        for i in range(self.roiLayout.count()): 
+            print(self.roiLayout.itemAt(i).widget().roi.distance(target_image))
+        self.roiLayout.addWidget(ROICanvas(target_image))
 
     def keyPressEvent(self, evt):
         super(MainWindow, self).keyPressEvent(evt)
@@ -132,18 +147,18 @@ class MainWindow(QWidget):
 
             t_n = 0
             fp_n = 0
-            print('There are %d ROIs.' % self.targetLayout.count())
 
-            for i in reversed(range(self.targetLayout.count())): 
-                local_widget = self.targetLayout.itemAt(i).widget()
+            for i in range(self.roiLayout.count()): 
+                local_widget = self.roiLayout.itemAt(i).widget()
                 if(local_widget.target):
                     local_widget.saveRoiImage(saveDirectory + "/targets/t{}.jpg".format(t_n))
                     t_n += 1
                 else:
                     local_widget.saveRoiImage(saveDirectory + "/fp/f{}.jpg".format(fp_n))
                     fp_n += 1
-        except:
-            pass
+        except Exception as e:
+            print('While saving images, the following exception occurred:')
+            print(e)
 
         if not self.pool.waitForDone():
             print('Processing killed before completion.')
