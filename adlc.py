@@ -129,9 +129,11 @@ class MainWindow(QWidget):
         self.queueCount -= 1
 
     def newTarget(self, target_image):
-        for i in range(self.roiLayout.count()): 
-            print(self.roiLayout.itemAt(i).widget().roi.distance(target_image))
         self.roiLayout.addWidget(ROICanvas(target_image))
+        for i in range(self.targetLayout.count()): 
+            if(self.targetLayout.itemAt(i).widget().roi.distance(target_image) < 25):
+                return
+        self.targetLayout.addWidget(ROICanvas(target_image))
 
     def keyPressEvent(self, evt):
         super(MainWindow, self).keyPressEvent(evt)
