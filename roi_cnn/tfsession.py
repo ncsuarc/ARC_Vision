@@ -6,9 +6,14 @@ class TFSession:
     class __TFSession:
         def __init__(self):
             self.sess = tf.Session()
+            atexit.register(self.close)
 
         def __getattr__(self, name):
             return getattr(self.sess, name)
+
+        def close(self):
+            print('Closing Tensorflow Session...')
+            self.sess.close()
 
     instance = None
 
@@ -20,7 +25,3 @@ class TFSession:
     def __getattr__(self, name):
         return getattr(self.instance, name)
 
-@atexit.register
-def __close_session():
-    print('Closing Tensorflow Session...')
-    TFSession().close()
