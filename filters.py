@@ -85,53 +85,72 @@ def false_positive_filter(old_ROIs):
 
 def get_target_info(img):
     #Use KMeans to segment the image into distinct colors
+    #K = 3 for background, target, and letter
+    K = 3
     Z = img.reshape((-1,3))
     Z = np.float32(Z)
     criteria = (cv2.TERM_CRITERIA_EPS, 0, 0.25)
-    compactness,labels,centers = cv2.kmeans(Z,4,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS ) 
-    
+    compactness,labels,centers = cv2.kmeans(Z,K,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS ) 
     centers = np.uint8(centers)
-    res = centers[labels.flatten()]
-    res = res.reshape((img.shape))
     
-    #Edge Detect
-    canny = cv2.Canny(res, 100, 200)
-    (_, contours, hierarchy) = cv2.findContours(canny,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    #Determine which class is the background
+    idx = np.argmin(np.mean(centers, axis=1))
+    labels = labels.flatten()
     
-    #Find the largest contour in the image, which will presumably be the target
-    largest_index = 0
-    largest_area = 0
+    #Determine which classes are not the background
+    indexes = [i for i in range(K)]
+    indexes.remove(idx)
+    first_color_index = indexes[0]
+    second_color_index = indexes[1]
     
-    for c, i in zip(contours,range(len(contours))):
-        area = cv2.contourArea(c)
-        if area > largest_area:
-            largest_index = i
-            largest_area = area
+    #Create two separate images, one for each non-background class
+    first_labels = np.copy(labels)
+    first_labels[first_labels==second_color_index] = idx
+    first_img = centers[first_labels]
+    first_img = first_img.reshape((img.shape))
     
-    #Find the child of the target contour, which will be the letter
-    hierarchy = hierarchy[0]
-    shape_h = hierarchy[largest_index]
-    shape_inner_h = hierarchy[shape_h[2]]
-    letter_cnt = contours[shape_inner_h[2]]
+    second_labels = np.copy(labels)
+    second_labels[second_labels==first_color_index] = idx
+    second_img = centers[second_labels]
+    second_img = second_img.reshape((img.shape))
     
-    #Separate the letter and shape into different images
-    letter_mask = np.zeros(img.shape[0:2], np.uint8)
-    cv2.drawContours(letter_mask, [letter_cnt], 0, 255, -1)
-    kernel = np.ones((3,3),np.uint8)
-    letter_mask = cv2.erode(letter_mask, kernel, iterations = 1)
-    letter_color = cv2.mean(img, letter_mask)
-    letter_color = letter_color[0:3]
+    #Determine shape vs letter
+    (_, first_contours, first_hierarchy) = cv2.findContours(cv2.cvtColor(first_img, cv2.COLOR_RGB2GRAY),cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    (_, second_contours, second_hierarchy) = cv2.findContours(cv2.cvtColor(second_img, cv2.COLOR_RGB2GRAY),cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    
+    if(cv2.contourArea(first_contours[0]) > cv2.contourArea(second_contours[0])):
+        shape_cnt = first_contours[0]
+        shape_cnts = first_contours
+        shape_h = first_hierarchy
+        shape_color = centers[first_color_index]
+        shape_image = first_img
+        
+        letter_cnt = second_contours[0]
+        letter_cnts = second_contours
+        letter_h = second_hierarchy
+        letter_color = centers[second_color_index]
+        letter_img = second_img
+    else:
+        letter_cnt = first_contours[0]
+        letter_cnts = first_contours
+        letter_h = first_hierarchy
+        letter_color = centers[first_color_index]
+        letter_img = first_img
+        
+        shape_cnt = second_contours[0]
+        shape_cnts = second_contours
+        shape_h = second_hierarchy
+        shape_color = centers[second_color_index]
+        shape_image = second_img
+        
+    letter_mask = cv2.inRange(letter_img, letter_color, letter_color)
     
     shape_mask = np.zeros(img.shape[0:2], np.uint8)
-    cv2.drawContours(shape_mask, contours, largest_index, 255, -1)
-    shape_mask_cut = shape_mask - letter_mask
-    shape_color = cv2.mean(img, shape_mask_cut)
-    shape_color = shape_color[0:3]
-    
-    return (shape_mask, shape_color), (letter_mask, letter_color)
+    cv2.drawContours(shape_mask, [shape_cnt], 0, 255, -1)
+    return ((shape_mask, shape_color), (letter_mask, letter_color))
 
 def draw_mask_color(mask, color):
-    img = np.zeros(mask.shape.append(len(color)), np.uint8)
+    img = np.zeros(mask.shape + (len(color),), np.uint8)
     
     img[:,:] = color
    
