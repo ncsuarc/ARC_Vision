@@ -34,7 +34,7 @@ class ROICanvas(QWidget):
         self.setMinimumHeight(70)
         self.setMinimumWidth(70)
 
-        self.setImage(roi.roi_original)
+        self.setImage(roi.thumbnail)
 
     def setImage(self, image):
         new_height = self.geometry().height()-10

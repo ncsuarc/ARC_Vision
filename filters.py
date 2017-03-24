@@ -95,6 +95,7 @@ def get_target_info(img):
     
     #Determine which class is the background
     idx = np.argmin(np.mean(centers, axis=1))
+    centers[idx] = [0, 0, 0]
     labels = labels.flatten()
     
     #Determine which classes are not the background
