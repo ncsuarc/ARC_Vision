@@ -108,7 +108,7 @@ class MainWindow(QWidget):
         self.flagButton.setChecked(False)
         self.image_flagged = False
 
-        ROIs = filters.high_pass_filter(self.images[self.n], goal=600)
+        ROIs = filters.get_rois(self.images[self.n], goal=600)
         target_ROIs = filters.false_positive_filter(ROIs)
         x = 0
         y = 0

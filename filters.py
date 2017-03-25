@@ -5,7 +5,7 @@ import roi
 from roi_cnn.check_targets import check_targets
 
 def get_targets(arcImage):
-    return false_positive_filter(high_pass_filter(arcImage))
+    return false_positive_filter(get_rois(arcImage))
 
 def get_contours(image, goal, getCanny=False):
     image_blur = cv2.GaussianBlur(image, (5, 5), 0)
@@ -44,7 +44,7 @@ def coerceVar(var, minimum, maximum):
     else:
         return var
 
-def high_pass_filter(arc_image, goal=600, min_size = 0.25, max_size = 2):
+def get_rois(arc_image, goal=600, min_size = 0.25, max_size = 2):
     image = cv2.imread(arc_image.high_quality_jpg)
 
     rois = []

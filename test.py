@@ -45,10 +45,10 @@ class FilterTest(unittest.TestCase):
             cv2.imshow('Display', res)
             cv2.waitKey()
 
-    def test_high_pass_filter(self):
+    def test_get_rois(self):
         for img in self.target_images:
             print('Testing')
-            rois = filters.high_pass_filter(img)
+            rois = filters.get_rois(img)
             for roi in rois:
                 cv2.imshow('Display', roi.roi)
                 cv2.waitKey()
