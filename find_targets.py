@@ -88,15 +88,28 @@ class MainWindow(QWidget):
     def update_images(self):
         if not os.path.isdir(self.saveDirectory + "/targets"):
             os.mkdir(self.saveDirectory + "/targets")
+
         if not os.path.isdir(self.saveDirectory + "/fp"):
             os.mkdir(self.saveDirectory + "/fp")
+
+        if not os.path.isdir(self.saveDirectory + "/thumbnail"):
+            os.mkdir(self.saveDirectory + "/thumbnail")
+
+        if not os.path.isdir(self.saveDirectory + "/thumbnail/targets"):
+            os.mkdir(self.saveDirectory + "/thumbnail/targets")
+
+        if not os.path.isdir(self.saveDirectory + "/thumbnail/fp"):
+            os.mkdir(self.saveDirectory + "/thumbnail/fp")
+
         for i in reversed(range(self.roiLayout.count())): 
             local_widget = self.roiLayout.itemAt(i).widget()
             if(local_widget.target):
                 local_widget.saveRoiImage(self.saveDirectory + "/targets/t{}.jpg".format(self.t_n))
+                local_widget.saveThumbnailImage(self.saveDirectory + "/thumbnail/targets/t{}.jpg".format(self.t_n))
                 self.t_n += 1
             else:
                 local_widget.saveRoiImage(self.saveDirectory + "/fp/f{}.jpg".format(self.fp_n))
+                local_widget.saveThumbnailImage(self.saveDirectory + "/thumbnail/fp/f{}.jpg".format(self.fp_n))
                 self.fp_n += 1
                 
             self.roiLayout.itemAt(i).widget().setParent(None)

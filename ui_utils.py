@@ -59,5 +59,8 @@ class ROICanvas(QWidget):
     def saveRoiImage(self, location):
         cv2.imwrite(location, self.roi.roi)
 
+    def saveThumbnailImage(self, location):
+        cv2.imwrite(location, self.roi.thumbnail)
+
 def cvImgToQImg(cvImg):
     return QImage(cvImg.data, cvImg.shape[1], cvImg.shape[0], cvImg.strides[0], QImage.Format_RGB888)
