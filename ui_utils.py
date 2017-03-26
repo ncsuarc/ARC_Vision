@@ -62,5 +62,27 @@ class ROICanvas(QWidget):
     def saveThumbnailImage(self, location):
         cv2.imwrite(location, self.roi.thumbnail)
 
+class TargetCanvas(QWidget):
+    def __init__(self, target):
+        super(TargetCanvas, self).__init__(None)
+        self.target = target
+
+        self.setMaximumHeight(70)
+        self.setMinimumHeight(70)
+        self.setMinimumWidth(70)
+
+        self.setImage(target.rois[0].thumbnail)
+
+    def setImage(self, image):
+        new_height = self.geometry().height()-10
+        new_width = int(new_height*image.shape[1]/image.shape[0])
+        self.qImage = cvImgToQImg(cv2.resize(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), (new_width, new_height)))
+
+    def paintEvent(self, evt):
+        painter = QPainter()
+        painter.begin(self)
+
+        painter.drawImage(5, 5, self.qImage)
+
 def cvImgToQImg(cvImg):
     return QImage(cvImg.data, cvImg.shape[1], cvImg.shape[0], cvImg.strides[0], QImage.Format_RGB888)

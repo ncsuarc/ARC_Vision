@@ -1,5 +1,7 @@
 import ARC
+
 import filters
+import roi
 
 import atexit
 import os
@@ -81,10 +83,11 @@ class ADLCProcessor(QObject):
         self.rois.append(new_roi)
         self.new_roi.emit(new_roi)
         for t in self.targets:
-            if(t.distance(new_roi) < 25):
+            if t.is_duplicate(new_roi):
                 return
-        self.targets.append(new_roi)
-        self.new_target.emit(new_roi)
+        tgt = roi.Target(new_roi)
+        self.targets.append(tgt)
+        self.new_target.emit(tgt)
 
 class ImageProcessorConnector(QObject):
 

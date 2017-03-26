@@ -76,7 +76,7 @@ def false_positive_filter(old_ROIs):
         return []
 
     new_ROIs = []
-    images = [region.roi for region in old_ROIs] 
+    images = [region.thumbnail for region in old_ROIs] 
     labels = check_targets(images)
     for region, label in zip(old_ROIs, labels):
         if(label):

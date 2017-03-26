@@ -3,7 +3,55 @@ import numpy as np
 from math import radians, cos, sin, asin, sqrt
 import filters
 
+class Target():
+
+    bf = cv2.BFMatcher()
+    MIN_DISTANCE = 100
+    MIN_MATCHES = 2
+    MATCH_THRESHOLD = 0.75
+
+    def __init__(self, roi):
+        self.rois = []
+
+        self._total_lat = 0
+        self._total_lon = 0
+        self.add_roi(roi)
+
+    def add_roi(self, roi):
+        self.rois.append(roi)
+
+        lat, lon = roi.coord
+        self._total_lat += lat
+        self._total_lon += lon
+        self.coord = (self._total_lat / len(self.rois), self._total_lon / len(self.rois))
+
+    def is_duplicate(self, other):
+        if haversine(self.coord, other.coord) > Target.MIN_DISTANCE:
+            return False 
+
+        matches = Target.bf.knnMatch(self.rois[0].descriptor, other.descriptor, k=2)
+        
+        good = 0
+        for m,n in matches:
+            if m.distance < Target.MATCH_THRESHOLD * n.distance:
+                good += 1
+
+        if good < Target.MIN_MATCHES:
+            return False
+        
+        self.add_roi(other)
+        return True
+
 class ROI():
+
+    MIN_WIDTH = 0.5
+    MAX_WIDTH = 2.0
+    MIN_HEIGHT = 0.5
+    MAX_HEIGHT = 2.0
+    THUMBNAIL_BORDER = 0.25
+
+    sift = cv2.xfeatures2d.SIFT_create()
+
     def __init__(self, arc_image, image, cnt):
         self.arc_image = arc_image
 
@@ -11,10 +59,10 @@ class ROI():
         x, y, w, h = cv2.boundingRect(cnt)
         self.real_width = w*arc_image.width_m_per_px
         self.real_height = h*arc_image.height_m_per_px
-
-        if not ((0.5 <= self.real_width <= 2.0) and (0.5 <= self.real_height <= 2.0)):
+        
+        if not ((ROI.MIN_WIDTH <= self.real_width <= ROI.MAX_WIDTH) and (ROI.MIN_HEIGHT <= self.real_height <= ROI.MAX_HEIGHT)):
             raise ValueError("Failed size test.")
-
+        
         roi_mask = np.zeros(image.shape[0:2], np.uint8)
         cv2.drawContours(roi_mask, [cnt], 0, 255, -1)
 
@@ -64,8 +112,8 @@ class ROI():
 
         ##Create a nice thumbnail image for this ROI
         #Adjust coordinates to include a quarter meter more on each side
-        diff_m_width = int(0.25 / arc_image.width_m_per_px)
-        diff_m_height = int(0.25 / arc_image.height_m_per_px)
+        diff_m_width = int(ROI.THUMBNAIL_BORDER / arc_image.width_m_per_px)
+        diff_m_height = int(ROI.THUMBNAIL_BORDER / arc_image.height_m_per_px)
         if(y - diff_m_height < 0):
             diff_m_height = y
         if(x - diff_m_width < 0):
@@ -76,6 +124,7 @@ class ROI():
             diff_m_width = image.shape[1] - x - w
 
         self.thumbnail = image[y - diff_m_height : y + h + diff_m_height, x - diff_m_width : x + w + diff_m_width]
+        self.keypoints, self.descriptor = ROI.sift.detectAndCompute(self.thumbnail, None)
     
     def validate(self):
         #check area of the contour compared to the area of the rect
@@ -88,17 +137,16 @@ class ROI():
             return False
         #Calculate aspect ratio of rotated bounding box
         tl, tr, br, bl = order_points(rect_cnt)
+
         if cartesian_dist(tl, bl) == 0:
             self.ar = 0
         else:
             self.ar = cartesian_dist(tl, tr)/cartesian_dist(tl, bl) 
+
         if not (0.3 < self.ar < 3):
             return False
         
         return True
-
-    def distance(self, other):
-        return haversine(self.coord, other.coord)
 
 def order_points(pts):
     s = pts.sum(axis = 1)

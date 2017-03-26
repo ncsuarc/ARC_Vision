@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(saveAction)
 
     def new_target(self, target):
-        self.targetLayout.addWidget(ROICanvas(target))
+        self.targetLayout.addWidget(TargetCanvas(target))
 
     def new_roi(self, roi):
         self.roiLayout.addWidget(ROICanvas(roi))
@@ -80,7 +80,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print('While saving images, the following exception occurred:')
             print(e)
-
 
     def keyPressEvent(self, evt):
         super(MainWindow, self).keyPressEvent(evt)
