@@ -13,49 +13,46 @@ class Target():
 
     def __init__(self, roi):
         self.rois = []
+        self.nadired_rois = []
 
         self._total_lat = 0
         self._total_lon = 0
         self.add_roi(roi)
 
     def get_confidence(self):
-        total_dist = 0
-        n = 0
-        for i in range(len(self.rois)):
-            for j in range(i + 1, len(self.rois)):
-                total_dist += haversine(self.rois[i].coord, self.rois[j].coord)
-                n += 1
-        if(n == 0):
-            avg_dist = 0
-        else:
-            avg_dist = total_dist / n
-
-        return (len(self.rois) - avg_dist/50)
+        return len(self.rois)
 
     def add_roi(self, roi):
         self.rois.append(roi)
+        
+        if(roi.arc_image.nadired):
+            self.nadired_rois.append(roi)
+            lat, lon = roi.coord
+            self._total_lat += lat
+            self._total_lon += lon
+            self.coord = (self._total_lat / len(self.rois), self._total_lon / len(self.rois))
 
-        lat, lon = roi.coord
-        self._total_lat += lat
-        self._total_lon += lon
-        self.coord = (self._total_lat / len(self.rois), self._total_lon / len(self.rois))
+        if len(self.rois) == 1:
+            self.coord = roi.coord
 
     def is_duplicate(self, other):
-        if haversine(self.coord, other.coord) > Target.MIN_DISTANCE:
-            return False 
+        for roi in self.rois:
+            if haversine(roi.coord, other.coord) > Target.MIN_DISTANCE:
+                continue
+            
+            matches = Target.bf.knnMatch(roi.descriptor, other.descriptor, k=2)
+            
+            good = 0
+            for m,n in matches:
+                if m.distance < Target.MATCH_THRESHOLD * n.distance:
+                    good += 1
+            
+            if good < Target.MIN_MATCHES:
+                continue
 
-        matches = Target.bf.knnMatch(self.rois[0].descriptor, other.descriptor, k=2)
-        
-        good = 0
-        for m,n in matches:
-            if m.distance < Target.MATCH_THRESHOLD * n.distance:
-                good += 1
-        
-        if good < Target.MIN_MATCHES:
-            return False
-
-        self.add_roi(other)
-        return True
+            self.add_roi(other)
+            return True
+        return False
 
 class ROI():
 
@@ -139,8 +136,10 @@ class ROI():
             diff_m_width = image.shape[1] - x - w
 
         self.thumbnail = image[y - diff_m_height : y + h + diff_m_height, x - diff_m_width : x + w + diff_m_width]
-        self.keypoints, self.descriptor = ROI.sift.detectAndCompute(self.thumbnail, None)
-    
+        try:
+            self.keypoints, self.descriptor = ROI.sift.detectAndCompute(self.thumbnail, None)
+        except Exception:
+            raise ValueError('Unable to detect keypoints')
     def validate(self):
         #check area of the contour compared to the area of the rect
         cnt_area = cv2.contourArea(self.cnt)

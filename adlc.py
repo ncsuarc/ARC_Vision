@@ -67,8 +67,8 @@ class ADLCProcessor(QObject):
 
     def processImages(self):
         if self.queueCount < self.threads*2 and len(self.images) > 0:
-            while not self.images[0].nadired:
-                self.images.popleft() #Throw out images that are not nadired
+            #while not self.images[0].nadired:
+            #    self.images.popleft() #Throw out images that are not nadired
             self.startImageProcessing(self.images.popleft())
 
     def startImageProcessing(self, image):
@@ -87,6 +87,7 @@ class ADLCProcessor(QObject):
                 return
         tgt = roi.Target(new_roi)
         self.targets.append(tgt)
+        self.targets = sorted(self.targets, key=lambda x: x.get_confidence(), reverse=True) 
         self.new_target.emit(tgt)
 
 class ImageProcessorConnector(QObject):
