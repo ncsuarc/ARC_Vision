@@ -5,10 +5,11 @@ import filters
 
 class Target():
 
-    bf = cv2.BFMatcher()
     MIN_DISTANCE = 100
-    MIN_MATCHES = 2
-    MATCH_THRESHOLD = 0.75
+    MIN_MATCHES = 4
+    MATCH_THRESHOLD = 0.70
+
+    bf = cv2.BFMatcher()
 
     def __init__(self, roi):
         self.rois = []
@@ -16,6 +17,20 @@ class Target():
         self._total_lat = 0
         self._total_lon = 0
         self.add_roi(roi)
+
+    def get_confidence(self):
+        total_dist = 0
+        n = 0
+        for i in range(len(self.rois)):
+            for j in range(i + 1, len(self.rois)):
+                total_dist += haversine(self.rois[i].coord, self.rois[j].coord)
+                n += 1
+        if(n == 0):
+            avg_dist = 0
+        else:
+            avg_dist = total_dist / n
+
+        return (len(self.rois) - avg_dist/50)
 
     def add_roi(self, roi):
         self.rois.append(roi)
@@ -35,10 +50,10 @@ class Target():
         for m,n in matches:
             if m.distance < Target.MATCH_THRESHOLD * n.distance:
                 good += 1
-
+        
         if good < Target.MIN_MATCHES:
             return False
-        
+
         self.add_roi(other)
         return True
 
