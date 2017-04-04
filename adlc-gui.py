@@ -65,6 +65,12 @@ class MainWindow(QMainWindow):
                 os.mkdir(saveDirectory + "/targets")
             if not os.path.isdir(saveDirectory + "/fp"):
                 os.mkdir(saveDirectory + "/fp")
+            if not os.path.isdir(saveDirectory + "/thumbnail"):
+                os.mkdir(saveDirectory + "/thumbnail")
+            if not os.path.isdir(saveDirectory + "/thumbnail/targets"):
+                os.mkdir(saveDirectory + "/thumbnail/targets")
+            if not os.path.isdir(saveDirectory + "/thumbnail/fp"):
+                os.mkdir(saveDirectory + "/thumbnail/fp")
 
             t_n = 0
             fp_n = 0
@@ -73,9 +79,11 @@ class MainWindow(QMainWindow):
                 local_widget = self.roiLayout.itemAt(i).widget()
                 if(local_widget.target):
                     local_widget.saveRoiImage(saveDirectory + "/targets/t{}.jpg".format(t_n))
+                    local_widget.saveThumbnailImage(saveDirectory + "/thumbnail/targets/t{}.jpg".format(t_n))
                     t_n += 1
                 else:
                     local_widget.saveRoiImage(saveDirectory + "/fp/f{}.jpg".format(fp_n))
+                    local_widget.saveThumbnailImage(saveDirectory + "/thumbnail/fp/f{}.jpg".format(fp_n))
                     fp_n += 1
         except Exception as e:
             print('While saving images, the following exception occurred:')
