@@ -13,7 +13,7 @@ class FilterTest(unittest.TestCase):
         cv2.namedWindow('Display', cv2.WINDOW_NORMAL)
         cv2.resizeWindow('Display', 1920, 1080)
 
-        self.flight = ARC.Flight(167)
+        self.flight = ARC.Flight(165)
         self.targets = self.flight.all_targets()
         self.target_images = []
         if self.targets == None:
@@ -29,14 +29,19 @@ class FilterTest(unittest.TestCase):
         self.images = self.flight.all_images()
         
     def test_get_contours(self):
-        for img, i in zip(self.target_images, range(len(self.target_images))):
+        for img, i in zip(self.images, range(len(self.target_images))):
             with self.subTest(i=i):
                 start_time = time.time()
                 contours = filters.get_contours(cv2.imread(img.high_quality_jpg), goal=300)
                 self.assertLess((time.time()-start_time), 2) # Ensure the operation took less than 2 seconds
-                self.assertLess(len(rois), 330)
-                self.assertGreater(len(rois), 270)
-    
+                self.assertLess(len(contours), 330)
+                self.assertGreater(len(contours), 270)
+
+    def test_get_contours_small(self):
+        redblue = cv2.imread('test_images/redblue.png')
+        contours = filters.get_contours(redblue, goal=1)
+        self.assertEqual(len(contours), 1)
+
     def test_get_contours_canny(self):
         for img in self.images:
             image = cv2.imread(img.high_quality_jpg)
@@ -48,8 +53,7 @@ class FilterTest(unittest.TestCase):
             cv2.waitKey()
 
     def test_get_rois(self):
-        for img in self.images:
-            print('Testing')
+        for img, i in zip(self.images, range(len(self.target_images))):
             rois = filters.get_rois(img)
             for roi in rois:
                 cv2.imshow('Display', roi.roi)
@@ -137,5 +141,10 @@ class FilterTest(unittest.TestCase):
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     suite.addTest(FilterTest("test_get_target_info"))
+    suite.addTest(FilterTest("test_get_contours_small"))
+    suite.addTest(FilterTest("test_get_contours"))
+    #suite.addTest(FilterTest("test_get_contours"))
+    #suite.addTest(FilterTest("test_get_rois"))
+    
     runner = unittest.TextTestRunner()
     runner.run(suite)

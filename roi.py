@@ -25,27 +25,30 @@ class Target():
     def add_roi(self, roi):
         self.rois.append(roi)
         
+        if len(self.rois) == 1:
+            self.coord = roi.coord
+            return
+
         if(roi.arc_image.nadired):
             self.nadired_rois.append(roi)
             lat, lon = roi.coord
             self._total_lat += lat
             self._total_lon += lon
-            self.coord = (self._total_lat / len(self.rois), self._total_lon / len(self.rois))
-
-        if len(self.rois) == 1:
-            self.coord = roi.coord
+            self.coord = (self._total_lat / len(self.nadired_rois), self._total_lon / len(self.nadired_rois))
 
     def is_duplicate(self, other):
+        if haversine(self.coord, other.coord) > Target.MIN_DISTANCE:
+            return False
         for roi in self.rois:
-            if haversine(roi.coord, other.coord) > Target.MIN_DISTANCE:
+            try: #Catch various opencv exceptions
+                matches = Target.bf.knnMatch(roi.descriptor, other.descriptor, k=2)
+
+                good = 0
+                for m,n in matches:
+                    if m.distance < Target.MATCH_THRESHOLD * n.distance:
+                        good += 1
+            except:
                 continue
-            
-            matches = Target.bf.knnMatch(roi.descriptor, other.descriptor, k=2)
-            
-            good = 0
-            for m,n in matches:
-                if m.distance < Target.MATCH_THRESHOLD * n.distance:
-                    good += 1
             
             if good < Target.MIN_MATCHES:
                 continue
@@ -78,51 +81,6 @@ class ROI():
         roi_mask = np.zeros(image.shape[0:2], np.uint8)
         cv2.drawContours(roi_mask, [cnt], 0, 255, -1)
 
-        #Cut out the contour with a 5px margin on each side
-        y_bar = y - 5
-        if y_bar < 0:
-            y_bar = 0
-        x_bar = x - 5
-        if x_bar < 0:
-            x_bar = 0
-        w_bar = w + 5
-        if x + w_bar > image.shape[1]:
-            w_bar = image.shape[1]
-        h_bar = h + 5
-        if y + h_bar < image.shape[0]:
-            h_bar = image.shape[0]
-
-        roi_mask = roi_mask[y_bar:y + h_bar, x_bar:x + w_bar]
-        sub_image = image[y_bar:y + h_bar, x_bar:x + w_bar]
-
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        roi_mask = cv2.dilate(roi_mask, kernel, iterations = 1)
-        roi_mask = cv2.erode(roi_mask, kernel, iterations = 1)
-        
-        (_, contours, _) = cv2.findContours(roi_mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-        
-        if(len(contours) == 0):
-            raise ValueError("Failed contour test.")
-
-        self.cnt = contours[np.argmax([cv2.contourArea(c) for c in contours])]
-        self.rect = cv2.minAreaRect(self.cnt)
-
-        if not self.validate():
-            raise ValueError("Failed validation test.")
-        
-        #This will rescale the image from 0-255 to 128-255
-        #As a result, black targets will have color values as 128, as opposed to 0
-        sub_image = rescale_img_values(sub_image)
-        #Now, when the mask is applied, black values are at 128, and the background is 0
-        self.roi = cv2.bitwise_and(sub_image, sub_image, mask=roi_mask)
-        
-        M = cv2.moments(self.cnt)
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-
-        self.coord = arc_image.coord(x = cX, y = cY)
-
-        ##Create a nice thumbnail image for this ROI
         #Adjust coordinates to include a quarter meter more on each side
         diff_m_width = int(ROI.THUMBNAIL_BORDER / arc_image.width_m_per_px)
         diff_m_height = int(ROI.THUMBNAIL_BORDER / arc_image.height_m_per_px)
@@ -136,10 +94,39 @@ class ROI():
             diff_m_width = image.shape[1] - x - w
 
         self.thumbnail = image[y - diff_m_height : y + h + diff_m_height, x - diff_m_width : x + w + diff_m_width]
+        roi_mask = roi_mask[y - diff_m_height : y + h + diff_m_height, x - diff_m_width : x + w + diff_m_width]
+
+        #Find the target contour
+        contours = filters.get_contours(roi_mask, goal=1)
+        
+        if(len(contours) == 0):
+            raise ValueError("Failed contour test.")
+
+        self.cnt = contours[np.argmax([cv2.contourArea(c) for c in contours])]
+        self.rect = cv2.minAreaRect(self.cnt)
+
+        if not self.validate():
+            raise ValueError("Failed validation test.")
+        
+        #This will rescale the image from 0-255 to 128-255
+        #As a result, black targets will have color values as 128, as opposed to 0
+        sub_image = rescale_img_values(self.thumbnail)
+        #Now, when the mask is applied, black values are at 128, and the background is 0
+        self.roi = cv2.bitwise_and(sub_image, sub_image, mask=roi_mask)
+        
+        M = cv2.moments(self.cnt)
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+
+        self.coord = arc_image.coord(x = cX, y = cY)
+
+        ##Create a nice thumbnail image for this ROI
+
         try:
             self.keypoints, self.descriptor = ROI.sift.detectAndCompute(self.thumbnail, None)
         except Exception:
             raise ValueError('Unable to detect keypoints')
+
     def validate(self):
         #check area of the contour compared to the area of the rect
         cnt_area = cv2.contourArea(self.cnt)
