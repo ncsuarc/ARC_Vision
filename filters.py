@@ -7,24 +7,24 @@ from roi_cnn.check_targets import check_targets
 def get_targets(arcImage):
     return false_positive_filter(get_rois(arcImage))
 
-def get_contours(image, goal, getCanny=False):
+def get_contours(image, goal, getCanny=False, P=0.05):
     image_blur = cv2.GaussianBlur(image, (5, 5), 0)
 
-    canny_low = 50
-    canny_high = 250
+    canny_low = 20
+    canny_high = 100
     
-    for i in range(20):
+    for i in range(10):
         canny = cv2.Canny(image_blur, canny_low, canny_high)
 
         (_, contours, _) = cv2.findContours(canny,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
         n = len(contours)
         
         error = goal - n
-        step = 0.08*error 
+        step = P * error
         
         step = coerceVar(step, -50, 50)
         
-        if abs(error) < 0.1*goal: #10% margin of error
+        if abs(error) < math.ceil(0.1*goal): #10% margin of error
             break
         else:
             canny_high -= step
