@@ -1,19 +1,35 @@
 import numpy as np
 import cv2
-import ARC
 import os
+
+import ARC
 
 from PyQt5.QtWidgets import (QWidget, QPushButton, QScrollArea, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QFileDialog)
 from PyQt5.QtGui import (QImage, QPainter, QColor)
 
 from ui_utils import *
 import filters
+import adlc
 
 class MainWindow(QWidget):
     def __init__(self, parent=None, flight_number=0):
         super(MainWindow, self).__init__(parent)
 
         self.saveDirectory = str(QFileDialog.getExistingDirectory(self, "Select a directory to save the output in..."))
+        if not os.path.isdir(self.saveDirectory + "/targets"):
+            os.mkdir(self.saveDirectory + "/targets")
+
+        if not os.path.isdir(self.saveDirectory + "/fp"):
+            os.mkdir(self.saveDirectory + "/fp")
+
+        if not os.path.isdir(self.saveDirectory + "/thumbnail"):
+            os.mkdir(self.saveDirectory + "/thumbnail")
+
+        if not os.path.isdir(self.saveDirectory + "/thumbnail/targets"):
+            os.mkdir(self.saveDirectory + "/thumbnail/targets")
+
+        if not os.path.isdir(self.saveDirectory + "/thumbnail/fp"):
+            os.mkdir(self.saveDirectory + "/thumbnail/fp")
 
         self.flight_number = flight_number
         self.images = []
@@ -34,8 +50,24 @@ class MainWindow(QWidget):
                 new_images = flight.images_near(tgt.coord, 50)
                 self.images.extend(new_images)
             #Remove duplicate files
-            self.images = list(set(self.images)) 
-            
+            self.images = list(dict((image.filename, image) for image in self.images).values())
+
+            image_filenames = [image.filename for image in self.images] 
+            #Create ADLC Processor
+            self.other_processor = adlc.ADLCProcessor(flight_number=flight_number)
+            #Prevent the processor from starting
+            self.other_processor.queryNewImagesTimer.stop()
+            #Remove images that are going to be processed manually
+            size = len(self.other_processor.images)
+            for i in range(size):
+                image = self.other_processor.images.popleft()
+                if not (image.filename in image_filenames):
+                    self.other_processor.images.append(image)
+
+            self.other_processor.new_roi.connect(self.save_other_roi)
+            #And NOW start the processor
+            self.other_processor.queryNewImagesTimer.start(500)
+
             self.n = -1 #Next image will iterate this to 0
             self.nextImage()
         except ValueError as e:
@@ -77,7 +109,7 @@ class MainWindow(QWidget):
 
     def nextImage(self): 
         self.n += 1
-        if self.n >= len(self.images):
+        if self.n >= len(self.images) - 1:
             QApplication.quit()
             return
         self.update_images()
@@ -85,32 +117,23 @@ class MainWindow(QWidget):
     def flagImage(self, flagged):
         self.image_flagged = not self.image_flagged
 
+    def save_other_roi(self, roi):
+        print('ADLC found false positive')
+        self.fp_n += 1
+        cv2.imwrite(self.saveDirectory + "/fp/f{}.jpg".format(self.fp_n - 1), roi.roi)
+        cv2.imwrite(self.saveDirectory + "/thumbnail/fp/f{}.jpg".format(self.fp_n - 1), roi.thumbnail)
+
     def update_images(self):
-        if not os.path.isdir(self.saveDirectory + "/targets"):
-            os.mkdir(self.saveDirectory + "/targets")
-
-        if not os.path.isdir(self.saveDirectory + "/fp"):
-            os.mkdir(self.saveDirectory + "/fp")
-
-        if not os.path.isdir(self.saveDirectory + "/thumbnail"):
-            os.mkdir(self.saveDirectory + "/thumbnail")
-
-        if not os.path.isdir(self.saveDirectory + "/thumbnail/targets"):
-            os.mkdir(self.saveDirectory + "/thumbnail/targets")
-
-        if not os.path.isdir(self.saveDirectory + "/thumbnail/fp"):
-            os.mkdir(self.saveDirectory + "/thumbnail/fp")
-
         for i in reversed(range(self.roiLayout.count())): 
             local_widget = self.roiLayout.itemAt(i).widget()
             if(local_widget.target):
-                local_widget.saveRoiImage(self.saveDirectory + "/targets/t{}.jpg".format(self.t_n))
-                local_widget.saveThumbnailImage(self.saveDirectory + "/thumbnail/targets/t{}.jpg".format(self.t_n))
                 self.t_n += 1
+                local_widget.saveRoiImage(self.saveDirectory + "/targets/t{}.jpg".format(self.t_n - 1))
+                local_widget.saveThumbnailImage(self.saveDirectory + "/thumbnail/targets/t{}.jpg".format(self.t_n - 1))
             else:
-                local_widget.saveRoiImage(self.saveDirectory + "/fp/f{}.jpg".format(self.fp_n))
-                local_widget.saveThumbnailImage(self.saveDirectory + "/thumbnail/fp/f{}.jpg".format(self.fp_n))
                 self.fp_n += 1
+                local_widget.saveRoiImage(self.saveDirectory + "/fp/f{}.jpg".format(self.fp_n - 1))
+                local_widget.saveThumbnailImage(self.saveDirectory + "/thumbnail/fp/f{}.jpg".format(self.fp_n - 1))
                 
             self.roiLayout.itemAt(i).widget().setParent(None)
 

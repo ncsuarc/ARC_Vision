@@ -43,7 +43,7 @@ class ADLCProcessor(QObject):
         atexit.register(self.cleanup)
 
     def cleanup(self):
-        print('Exiting')
+        print('ADLC Processor cleaning up...')
         self.pool.waitForDone()
 
     def getQueueLength():
