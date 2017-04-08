@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import math
 import roi
-from roi_cnn.check_targets import check_targets
+from check_targets import check_targets
 
 def get_targets(arcImage):
     return false_positive_filter(get_rois(arcImage))
