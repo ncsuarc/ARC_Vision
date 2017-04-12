@@ -116,31 +116,21 @@ def get_target_info(img):
     second_img = second_img.reshape((img.shape))
     
     #Determine shape vs letter
-    (_, first_contours, first_hierarchy) = cv2.findContours(cv2.cvtColor(first_img, cv2.COLOR_RGB2GRAY),cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    (_, second_contours, second_hierarchy) = cv2.findContours(cv2.cvtColor(second_img, cv2.COLOR_RGB2GRAY),cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    (_, first_contours, _) = cv2.findContours(cv2.cvtColor(first_img, cv2.COLOR_RGB2GRAY),cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    (_, second_contours, _) = cv2.findContours(cv2.cvtColor(second_img, cv2.COLOR_RGB2GRAY),cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     
     if(cv2.contourArea(first_contours[0]) > cv2.contourArea(second_contours[0])):
         shape_cnt = first_contours[0]
-        shape_cnts = first_contours
-        shape_h = first_hierarchy
         shape_color = centers[first_color_index]
         shape_image = first_img
         
-        letter_cnt = second_contours[0]
-        letter_cnts = second_contours
-        letter_h = second_hierarchy
         letter_color = centers[second_color_index]
         letter_img = second_img
     else:
-        letter_cnt = first_contours[0]
-        letter_cnts = first_contours
-        letter_h = first_hierarchy
         letter_color = centers[first_color_index]
         letter_img = first_img
         
         shape_cnt = second_contours[0]
-        shape_cnts = second_contours
-        shape_h = second_hierarchy
         shape_color = centers[second_color_index]
         shape_image = second_img
         
