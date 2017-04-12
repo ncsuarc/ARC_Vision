@@ -70,13 +70,13 @@ class Target():
                 for m,n in matches:
                     if m.distance < Target.MATCH_THRESHOLD * n.distance:
                         good += 1
+
+                if good < Target.MIN_MATCHES:
+                    continue
+
+                self.add_roi(other)
             except ValueError:
                 continue
-            
-            if good < Target.MIN_MATCHES:
-                continue
-
-            self.add_roi(other)
             return True
         return False
 
@@ -176,12 +176,12 @@ class ROI():
 
     def classify(self):
         try:
-            ((self.shape_mask, self.shape_color), (self.alphanumeric_mask, self.alphanumeric_color)) = filters.get_target_info(self.roi)
+            ((self.shape_mask, self.shape_color), (self.alphanumeric_mask, self.alphanumeric_color)) = classify.get_target_info(self.roi)
         except IndexError:
             raise ValueError("Error identifying target shape and letter")
 
-        self.shape_labels = classify.classify_shape(filters.draw_mask_color(self.shape_mask, self.shape_color))
-        self.alphanumeric_labels = classify.classify_alphanumeric(filters.draw_mask_color(self.alphanumeric_mask, self.alphanumeric_color))
+        self.shape_labels = classify.classify_shape(classify.draw_mask_color(self.shape_mask, self.shape_color))
+        self.alphanumeric_labels = classify.classify_alphanumeric(classify.draw_mask_color(self.alphanumeric_mask, self.alphanumeric_color))
 
 def order_points(pts):
     s = pts.sum(axis = 1)

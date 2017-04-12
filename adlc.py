@@ -18,8 +18,6 @@ class ADLCProcessor(QObject):
 
     def __init__(self, flight_number=0, threads=4):
         super(ADLCProcessor, self).__init__()
-        classify.Classifier()
-
         self.flight_number = flight_number
         self.threads = threads
 
@@ -87,7 +85,10 @@ class ADLCProcessor(QObject):
         for t in self.targets:
             if t.is_duplicate(new_roi):
                 return
-        tgt = roi.Target(new_roi)
+        try:
+            tgt = roi.Target(new_roi)
+        except ValueError:
+            return
         self.targets.append(tgt)
         self.targets = sorted(self.targets, key=lambda x: x.get_confidence(), reverse=True) 
         self.new_target.emit(tgt)

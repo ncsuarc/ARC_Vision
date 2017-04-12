@@ -11,7 +11,7 @@ import roi
 class ClassifyTest(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        classify.Classifier()
+        pass
 
     def test_check_targets(self):
         target = cv2.imread('test_images/target.jpg')
