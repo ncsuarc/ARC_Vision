@@ -2,6 +2,7 @@ import ARC
 
 import filters
 import roi
+import classify
 
 import atexit
 import os
@@ -17,6 +18,7 @@ class ADLCProcessor(QObject):
 
     def __init__(self, flight_number=0, threads=4):
         super(ADLCProcessor, self).__init__()
+        classify.Classifier()
 
         self.flight_number = flight_number
         self.threads = threads

@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from math import radians, cos, sin, asin, sqrt
 import filters
+import classify
 
 class Target():
 
@@ -14,6 +15,8 @@ class Target():
     def __init__(self, roi):
         self.rois = []
         self.nadired_rois = []
+        self.alphanumerics = {}
+        self.shapes = {}
 
         self._total_lat = 0
         self._total_lon = 0
@@ -22,12 +25,19 @@ class Target():
     def get_confidence(self):
         return len(self.rois)
 
+    def get_shape(self):
+        return sorted(list(self.shapes.items()), key = lambda x: x[1], reverse = True)[0][0]
+
+    def get_alphanumeric(self):
+        return sorted(list(self.alphanumerics.items()), key = lambda x: x[1], reverse = True)[0][0]
+
     def add_roi(self, roi):
+        roi.classify()
+
         self.rois.append(roi)
         
         if len(self.rois) == 1:
             self.coord = roi.coord
-            return
 
         if(roi.arc_image.nadired):
             self.nadired_rois.append(roi)
@@ -36,18 +46,31 @@ class Target():
             self._total_lon += lon
             self.coord = (self._total_lat / len(self.nadired_rois), self._total_lon / len(self.nadired_rois))
 
+        #Update target information based on the new roi's properties
+        for label in roi.shape_labels:
+            if label[1] in self.shapes.keys():
+                self.shapes[label[1]] += label[0]
+            else:
+                self.shapes[label[1]] = label[0]
+
+        for label in roi.alphanumeric_labels:
+            if label[1] in self.alphanumerics.keys():
+                self.alphanumerics[label[1]] += label[0]
+            else:
+                self.alphanumerics[label[1]] = label[0]
+
     def is_duplicate(self, other):
         if haversine(self.coord, other.coord) > Target.MIN_DISTANCE:
             return False
         for roi in self.rois:
-            try: #Catch various opencv exceptions
-                matches = Target.bf.knnMatch(roi.descriptor, other.descriptor, k=2)
+            matches = Target.bf.knnMatch(roi.descriptor, other.descriptor, k=2)
 
-                good = 0
+            good = 0
+            try: 
                 for m,n in matches:
                     if m.distance < Target.MATCH_THRESHOLD * n.distance:
                         good += 1
-            except:
+            except ValueError:
                 continue
             
             if good < Target.MIN_MATCHES:
@@ -124,6 +147,8 @@ class ROI():
 
         try:
             self.keypoints, self.descriptor = ROI.sift.detectAndCompute(self.thumbnail, None)
+            if self.descriptor == None:
+                raise ValueError('Unable to detect keypoints')
         except Exception:
             raise ValueError('Unable to detect keypoints')
 
@@ -149,6 +174,15 @@ class ROI():
         
         return True
 
+    def classify(self):
+        try:
+            ((self.shape_mask, self.shape_color), (self.alphanumeric_mask, self.alphanumeric_color)) = filters.get_target_info(self.roi)
+        except IndexError:
+            raise ValueError("Error identifying target shape and letter")
+
+        self.shape_labels = classify.classify_shape(filters.draw_mask_color(self.shape_mask, self.shape_color))
+        self.alphanumeric_labels = classify.classify_alphanumeric(filters.draw_mask_color(self.alphanumeric_mask, self.alphanumeric_color))
+
 def order_points(pts):
     s = pts.sum(axis = 1)
     diff = np.diff(pts, axis = 1)
@@ -168,6 +202,7 @@ def haversine(pt1, pt2):
     """
     Calculate the great circle distance between two points 
     on the earth (specified in decimal degrees)
+    Returns: the distance between the two points in meters.
     """
     # convert decimal degrees to radians 
     lon1, lat1, lon2, lat2 = map(radians, [pt1[1], pt1[0], pt2[1], pt2[0]])
@@ -176,8 +211,8 @@ def haversine(pt1, pt2):
     dlat = lat2 - lat1 
     a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
     c = 2 * asin(sqrt(a)) 
-    km = 6371008 * c
-    return km
+    m = 6371008 * c
+    return m
 
 #Renormalize values
 def rescale_img_values(img):

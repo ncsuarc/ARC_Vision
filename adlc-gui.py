@@ -1,4 +1,5 @@
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QListView, QPushButton, QScrollArea, QApplication, QHBoxLayout, QVBoxLayout, QFileDialog, QLabel, QAction)
 

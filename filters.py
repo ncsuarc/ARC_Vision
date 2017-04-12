@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import math
 import roi
-from check_targets import check_targets
+from classify import check_targets
 
 def get_targets(arcImage):
     return false_positive_filter(get_rois(arcImage))
@@ -44,7 +44,7 @@ def coerceVar(var, minimum, maximum):
     else:
         return var
 
-def get_rois(arc_image, goal=600, min_size = 0.25, max_size = 2):
+def get_rois(arc_image, goal = 600, min_size = 0.25, max_size = 2):
     image = cv2.imread(arc_image.high_quality_jpg)
 
     rois = []
@@ -90,7 +90,7 @@ def get_target_info(img):
     Z = img.reshape((-1,3))
     Z = np.float32(Z)
     criteria = (cv2.TERM_CRITERIA_EPS, 0, 0.25)
-    compactness,labels,centers = cv2.kmeans(Z,K,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS ) 
+    compactness, labels, centers = cv2.kmeans(Z, K, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS ) 
     centers = np.uint8(centers)
     
     #Determine which class is the background
@@ -106,12 +106,12 @@ def get_target_info(img):
     
     #Create two separate images, one for each non-background class
     first_labels = np.copy(labels)
-    first_labels[first_labels==second_color_index] = idx
+    first_labels[first_labels == second_color_index] = idx
     first_img = centers[first_labels]
     first_img = first_img.reshape((img.shape))
     
     second_labels = np.copy(labels)
-    second_labels[second_labels==first_color_index] = idx
+    second_labels[second_labels == first_color_index] = idx
     second_img = centers[second_labels]
     second_img = second_img.reshape((img.shape))
     

@@ -2,9 +2,11 @@ import unittest
 import time
 
 import ARC
-import filters
+
 import cv2
 import numpy as np
+
+import filters
 import roi
 
 class FilterTest(unittest.TestCase):
@@ -23,7 +25,7 @@ class FilterTest(unittest.TestCase):
             if not ((tgt.target_type == 0) or (tgt.target_type == 1) or (tgt.target_type == None)):
                 continue
             new_images = self.flight.images_near(tgt.coord, 50)
-            self.target_images.extend(new_images)
+            self.target_images.append(new_images[0])
         #Remove duplicate files
         self.target_images = dict((image.filename, image) for image in self.target_images).values()
         self.images = self.flight.all_images()

@@ -87,7 +87,7 @@ class TargetCanvas(QWidget):
             painter.drawRect(QRect(-1, -1, self.geometry().width()+2, self.geometry().height()+2))
 
         painter.drawImage(5, 5, self.qImage)
-        painter.drawText(75, 20, "{:8.4f}".format(self.target.get_confidence()))
+        painter.drawText(75, 20, "{} : {}".format(self.target.get_shape(), self.target.get_alphanumeric()))
 
 def cvImgToQImg(cvImg):
     return QImage(cvImg.data, cvImg.shape[1], cvImg.shape[0], cvImg.strides[0], QImage.Format_RGB888)

@@ -25,3 +25,9 @@ class Classifier:
 def check_targets(images):
     labels = Classifier().fp_model.test([cv2.resize(image, (64, 64)).flatten() for image in images])
     return [bool(np.argmax(label)) for label in labels]
+
+def classify_shape(image):
+    return Classifier().shape_model.classify([cv2.resize(image, (64, 64)).flatten()])[0]
+
+def classify_alphanumeric(image):
+    return Classifier().alphanumeric_model.classify([cv2.resize(image, (64, 64)).flatten()])[0]
