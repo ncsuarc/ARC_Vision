@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 
 import filters
+import classify
 import roi
 
 class FilterTest(unittest.TestCase):
@@ -75,7 +76,7 @@ class FilterTest(unittest.TestCase):
         redblue = cv2.imread('test_images/redblue.png')
         redblue = cv2.cvtColor(redblue, cv2.COLOR_BGR2RGB)
         
-        shape, letter = filters.get_target_info(redblue)
+        shape, letter = classify.get_target_info(redblue)
         shape_color = roi.descale_color_value(shape[1])
 
         self.assertLessEqual(shape_color[0], 255)
@@ -98,7 +99,7 @@ class FilterTest(unittest.TestCase):
         blackblue = cv2.imread('test_images/blackblue.png')
         blackblue = cv2.cvtColor(blackblue, cv2.COLOR_BGR2RGB)
         
-        shape, letter = filters.get_target_info(blackblue)
+        shape, letter = classify.get_target_info(blackblue)
         shape_color = roi.descale_color_value(shape[1])
 
         self.assertLessEqual(shape_color[0], 5)
@@ -121,7 +122,7 @@ class FilterTest(unittest.TestCase):
         redblack = cv2.imread('test_images/redblack.png')
         redblack = cv2.cvtColor(redblack, cv2.COLOR_BGR2RGB)
         
-        shape, letter = filters.get_target_info(redblack)
+        shape, letter = classify.get_target_info(redblack)
         shape_color = roi.descale_color_value(shape[1])
 
         self.assertLessEqual(shape_color[0], 255)
