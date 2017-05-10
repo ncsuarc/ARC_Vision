@@ -32,8 +32,6 @@ class Target():
         return sorted(list(self.alphanumerics.items()), key = lambda x: x[1], reverse = True)[0][0]
 
     def add_roi(self, roi):
-        roi.classify()
-
         self.rois.append(roi)
         
         if len(self.rois) == 1:
@@ -151,6 +149,8 @@ class ROI():
                 raise ValueError('Unable to detect keypoints')
         except Exception:
             raise ValueError('Unable to detect keypoints')
+
+        self.classify()
 
     def validate(self):
         #check area of the contour compared to the area of the rect

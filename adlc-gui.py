@@ -90,9 +90,6 @@ class MainWindow(QMainWindow):
             print('While saving images, the following exception occurred:')
             print(e)
 
-    def keyPressEvent(self, evt):
-        super(MainWindow, self).keyPressEvent(evt)
-    
 if __name__=="__main__":
     import sys
     import argparse

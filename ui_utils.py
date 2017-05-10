@@ -11,7 +11,7 @@ class ImageCanvas(QWidget):
 
     def setImage(self, image):
         try:
-            self.image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            self.image = image
             new_width = self.geometry().width()
             new_height = int(new_width*self.image.shape[0]/self.image.shape[1])
             self.qImage = cvImgToQImg(cv2.resize(self.image, (new_width, new_height)))
@@ -39,7 +39,7 @@ class ROICanvas(QWidget):
     def setImage(self, image):
         new_height = self.geometry().height()-10
         new_width = int(new_height*image.shape[1]/image.shape[0])
-        self.qImage = cvImgToQImg(cv2.resize(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), (new_width, new_height)))
+        self.qImage = cvImgToQImg(cv2.resize(image, (new_width, new_height)))
 
     def mousePressEvent(self, evt):
         super(ROICanvas, self).mousePressEvent(evt)
@@ -76,7 +76,7 @@ class TargetCanvas(QWidget):
     def setImage(self, image):
         new_height = self.geometry().height()-10
         new_width = int(new_height*image.shape[1]/image.shape[0])
-        self.qImage = cvImgToQImg(cv2.resize(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), (new_width, new_height)))
+        self.qImage = cvImgToQImg(cv2.resize(image, (new_width, new_height)))
 
     def paintEvent(self, evt):
         painter = QPainter()

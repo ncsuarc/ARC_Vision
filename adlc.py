@@ -85,10 +85,8 @@ class ADLCProcessor(QObject):
         for t in self.targets:
             if t.is_duplicate(new_roi):
                 return
-        try:
-            tgt = roi.Target(new_roi)
-        except ValueError:
-            return
+        tgt = roi.Target(new_roi)
+
         self.targets.append(tgt)
         self.targets = sorted(self.targets, key=lambda x: x.get_confidence(), reverse=True) 
         self.new_target.emit(tgt)

@@ -11,7 +11,7 @@ def get_contours(image, goal, getCanny=False, P=0.05):
     image_blur = cv2.GaussianBlur(image, (5, 5), 0)
 
     canny_low = 20
-    canny_high = 100
+    canny_high = 200
     
     for i in range(10):
         canny = cv2.Canny(image_blur, canny_low, canny_high)
@@ -46,6 +46,7 @@ def coerceVar(var, minimum, maximum):
 
 def get_rois(arc_image, goal = 600, min_size = 0.25, max_size = 2):
     image = cv2.imread(arc_image.high_quality_jpg)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     rois = []
     contour_mask = np.zeros(image.shape[0:2], np.uint8)
