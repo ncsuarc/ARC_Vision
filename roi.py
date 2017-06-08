@@ -7,7 +7,7 @@ import classify
 class Target():
 
     MIN_DISTANCE = 100
-    MIN_MATCHES = 4
+    MIN_MATCHES = 3
     MATCH_THRESHOLD = 0.70
 
     bf = cv2.BFMatcher()
