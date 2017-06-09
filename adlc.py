@@ -8,15 +8,17 @@ import atexit
 import os
 
 from collections import deque
+from osgeo import ogr
+from interop import InterOp
 
-from PyQt5.QtCore import (QObject, QRunnable, QThreadPool, QTimer, pyqtSignal)
+from PyQt5.QtCore import (QObject, QRunnable, QThreadPool, QTimer, QSettings, pyqtSignal)
 
 class ADLCProcessor(QObject):
 
     new_roi = pyqtSignal('PyQt_PyObject')
     new_target = pyqtSignal('PyQt_PyObject')
 
-    def __init__(self, flight_number=0, threads=4):
+    def __init__(self, flight_number=0, threads=4, check_interop=True):
         super(ADLCProcessor, self).__init__()
         self.flight_number = flight_number
         self.threads = threads
@@ -41,6 +43,32 @@ class ADLCProcessor(QObject):
         self.targets = []
 
         atexit.register(self.cleanup)
+        
+        self.check_interop = check_interop
+
+        if self.check_interop:
+            settings = QSettings("ARC", "PCC Interop Plugin")
+            ip = settings.value('host')
+            port = settings.value('port')
+            username = settings.value('username')
+            password = settings.value('password')
+            io = InterOp(username, password, ip, port)
+            missions = io.get_missions()
+
+            interop_grid_points = missions[1].get('search_grid_points')
+            grid_points = [None] * len(interop_grid_points)
+
+            for point in interop_grid_points: 
+                grid_points[point.get('order') - 1] = (point.get('latitude'), point.get('longitude'))
+
+            ring = ogr.Geometry(ogr.wkbLinearRing)
+
+            for point in grid_points:
+                ring.AddPoint(point[0], point[1])
+
+            ring.AddPoint(grid_points[0][0], grid_points[0][1])
+            self.search_grid = ogr.Geometry(ogr.wkbPolygon)  
+            self.search_grid.AddGeometry(ring)
 
     def cleanup(self):
         print('ADLC Processor cleaning up...')
@@ -67,9 +95,18 @@ class ADLCProcessor(QObject):
 
     def processImages(self):
         if self.queueCount < self.threads*2 and len(self.images) > 0:
-            #while not self.images[0].nadired:
-            #    self.images.popleft() #Throw out images that are not nadired
-            self.startImageProcessing(self.images.popleft())
+            if self.check_interop:
+                while len(self.images) > 0:
+                    image = self.images.popleft()
+                    for rel_coord in [(0,0), (0, image.height), (image.width, 0), (image.width, image.height)]:
+                        point = ogr.Geometry(ogr.wkbPoint)
+                        coord = image.coord(*rel_coord)
+                        point.AddPoint(*coord)
+                        if(self.search_grid.Contains(point)):
+                            self.startImageProcessing(image)
+                            return
+            else:
+                self.startImageProcessing(self.images.popleft())
 
     def startImageProcessing(self, image):
         processor = ImageProcessor(image, self.processingFinished, self.newTarget)
@@ -131,11 +168,12 @@ if __name__=="__main__":
     signal.signal(signal.SIGINT, sigint_handler)
 
     parser = argparse.ArgumentParser(description='Search flight images for targets.')
-    parser.add_argument("-i", "--input_flight", help="Flight number to search")
+    parser.add_argument("-i", "--input-flight", help="Flight number to search")
+    parser.add_argument("--no-interop", action="store_true")
     args = parser.parse_args()
     
     app = QCoreApplication(sys.argv)
-    processor = ADLCProcessor(flight_number=args.input_flight)
+    processor = ADLCProcessor(flight_number=args.input_flight, check_interop=(not args.no_interop))
 
     global target_count
     target_count = 0

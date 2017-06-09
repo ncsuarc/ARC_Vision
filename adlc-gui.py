@@ -8,13 +8,13 @@ from adlc import ADLCProcessor
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, flight_number=0, threads=4):
+    def __init__(self, flight_number=0, threads=4, check_interop=True):
         super(MainWindow, self).__init__(None)
 
         self.initUI()
         self.initToolbar()
 
-        self.processor = ADLCProcessor(flight_number = flight_number)
+        self.processor = ADLCProcessor(flight_number = flight_number, check_interop=check_interop)
         self.processor.new_target.connect(self.new_target)
         self.processor.new_roi.connect(self.new_roi)
 
@@ -96,10 +96,11 @@ if __name__=="__main__":
 
     parser = argparse.ArgumentParser(description='Search flight images for targets.')
     parser.add_argument("-i", "--input_flight", help="Flight number to search")
+    parser.add_argument("--no-interop", action="store_true")
     args = parser.parse_args()
     
     app = QApplication(sys.argv)
-    w = MainWindow(flight_number=args.input_flight)
+    w = MainWindow(flight_number=args.input_flight, check_interop=(not args.no_interop))
     w.resize(1600, 900)
     w.show()
     app.exec_()
