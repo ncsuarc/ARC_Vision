@@ -8,8 +8,9 @@ from adlc import ADLCProcessor
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, flight_number=0, threads=4, check_interop=True):
+    def __init__(self, flight_number=0, threads=4, check_interop=True, quit=True):
         super(MainWindow, self).__init__(None)
+        self.quit = quit
 
         self.initUI()
         self.initToolbar()
@@ -60,7 +61,9 @@ class MainWindow(QMainWindow):
         self.roiLayout.addWidget(ROICanvas(roi))
 
     def processing_finished(self):
-        QApplication.quit()
+        if(self.quit):
+            print('Processing finished, exiting...')
+            QApplication.quit()
 
     def saveImages(self):
         saveDirectory = str(QFileDialog.getExistingDirectory(self, "Select a directory to save the output in..."))
@@ -100,10 +103,11 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Search flight images for targets.')
     parser.add_argument("-i", "--input_flight", help="Flight number to search")
     parser.add_argument("--no-interop", action="store_true")
+    parser.add_argument("--no-quit", action="store_true")
     args = parser.parse_args()
     
     app = QApplication(sys.argv)
-    w = MainWindow(flight_number=args.input_flight, check_interop=(not args.no_interop))
+    w = MainWindow(flight_number=args.input_flight, check_interop=(not args.no_interop), quit=(not args.no_quit))
     w.resize(1600, 900)
     w.show()
     app.exec_()

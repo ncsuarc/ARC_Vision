@@ -57,10 +57,10 @@ class ROICanvas(QWidget):
         painter.drawImage(5, 5, self.qImage)
     
     def saveRoiImage(self, location):
-        cv2.imwrite(location, self.roi.roi)
+        cv2.imwrite(location, cv2.cvtColor(self.roi.roi, cv2.COLOR_BGR2RGB))
 
     def saveThumbnailImage(self, location):
-        cv2.imwrite(location, self.roi.thumbnail)
+        cv2.imwrite(location, cv2.cvtColor(self.roi.thumbnail, cv2.COLOR_BGR2RGB))
 
 class TargetCanvas(QWidget):
     def __init__(self, target):
@@ -71,24 +71,32 @@ class TargetCanvas(QWidget):
         self.setMinimumHeight(70)
         self.setMinimumWidth(70)
 
-        self.setImage(target.rois[0].thumbnail)
+        self.setImage(target.rois[0])
 
-    def setImage(self, image):
+        self.target.remove_target.connect(self.scheduleDeleteWidget)
+
+    def scheduleDeleteWidget(self):
+        self.setParent(None)
+        self.deleteLater()
+
+    def setImage(self, roi):
+        image = roi.thumbnail
         new_height = self.geometry().height()-10
         new_width = int(new_height*image.shape[1]/image.shape[0])
         self.qImage = cvImgToQImg(cv2.resize(image, (new_width, new_height)))
+        self.qImageShape = cvImgToQImg(cv2.resize(roi.shape_img, (new_width, new_height)))
+        self.qImageChar = cvImgToQImg(cv2.resize(roi.alphanumeric_img, (new_width, new_height)))
 
     def paintEvent(self, evt):
         painter = QPainter()
         painter.begin(self)
 
-        if self.target.get_confidence() >= 3:
-            painter.setBrush(QColor(0, 255, 0))
-            painter.drawRect(QRect(-1, -1, self.geometry().width()+2, self.geometry().height()+2))
-
         painter.drawImage(5, 5, self.qImage)
-        painter.drawText(200, 20, "{} | {}".format(self.target.get_shape(), self.target.get_alphanumeric()))
-        painter.drawText(200, 40, "{} | {}".format(self.target.coord[0], self.target.coord[1]))
+        painter.drawImage(150, 5, self.qImageShape)
+        painter.drawImage(300, 5, self.qImageChar)
+        painter.drawText(400, 20, "{} | {}".format(self.target.get_shape(), self.target.get_alphanumeric()))
+        painter.drawText(400, 40, "{} | {}".format(self.target.coord[0], self.target.coord[1]))
+        painter.drawText(400, 60, "N: {}".format(self.target.get_confidence()))
 
 def cvImgToQImg(cvImg):
     return QImage(cvImg.data, cvImg.shape[1], cvImg.shape[0], cvImg.strides[0], QImage.Format_RGB888)

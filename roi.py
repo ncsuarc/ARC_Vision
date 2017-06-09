@@ -4,7 +4,9 @@ from math import radians, cos, sin, asin, sqrt
 import filters
 import classify
 
-class Target():
+from PyQt5.QtCore import QObject, pyqtSignal
+
+class Target(QObject):
 
     MIN_DISTANCE = 100
     MIN_MATCHES = 3
@@ -12,7 +14,10 @@ class Target():
 
     bf = cv2.BFMatcher()
 
+    remove_target = pyqtSignal()
+
     def __init__(self, roi):
+        super(Target, self).__init__()
         self.rois = []
         self.nadired_rois = []
         self.alphanumerics = {}
@@ -141,15 +146,11 @@ class ROI():
 
         self.coord = arc_image.coord(x = cX, y = cY)
 
-        ##Create a nice thumbnail image for this ROI
-
         try:
             self.keypoints, self.descriptor = ROI.sift.detectAndCompute(self.thumbnail, None)
-            if self.descriptor == None:
-                raise ValueError('Unable to detect keypoints')
-        except Exception:
+            self.descriptor.any()
+        except Exception as e:
             raise ValueError('Unable to detect keypoints')
-
         self.classify()
 
     def validate(self):
@@ -177,11 +178,13 @@ class ROI():
     def classify(self):
         try:
             ((self.shape_mask, self.shape_color), (self.alphanumeric_mask, self.alphanumeric_color)) = classify.get_target_info(self.roi)
+            self.shape_img = classify.draw_mask_color(self.shape_mask, self.shape_color)
+            self.alphanumeric_img = classify.draw_mask_color(self.alphanumeric_mask, self.alphanumeric_color)
         except IndexError:
             raise ValueError("Error identifying target shape and letter")
 
-        self.shape_labels = classify.classify_shape(classify.draw_mask_color(self.shape_mask, self.shape_color))
-        self.alphanumeric_labels = classify.classify_alphanumeric(classify.draw_mask_color(self.alphanumeric_mask, self.alphanumeric_color))
+        self.shape_labels = classify.classify_shape(self.shape_img)
+        self.alphanumeric_labels = classify.classify_alphanumeric(self.alphanumeric_img)
 
 def order_points(pts):
     s = pts.sum(axis = 1)

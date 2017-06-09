@@ -23,6 +23,9 @@ class ADLCProcessor(QObject):
     new_target = pyqtSignal('PyQt_PyObject')
     processing_finished = pyqtSignal()
 
+    TARGET_THRESHOLD = 3
+    TARGET_OVERLOAD = 4
+
     def __init__(self, flight_number=0, threads=4, check_interop=True):
         super(ADLCProcessor, self).__init__()
         self.flight_number = flight_number
@@ -46,6 +49,7 @@ class ADLCProcessor(QObject):
         
         self.rois = []
         self.targets = []
+        self.potential_targets = []
 
         atexit.register(self.cleanup)
         
@@ -142,14 +146,22 @@ class ADLCProcessor(QObject):
     def newTarget(self, new_roi):
         self.rois.append(new_roi)
         self.new_roi.emit(new_roi)
-        for t in self.targets:
+        for t in self.potential_targets:
             if t.is_duplicate(new_roi):
+                if t in self.targets:
+                    if(t.get_confidence() > ADLCProcessor.TARGET_OVERLOAD):
+                        #self.targets.remove(t)
+                        print('REMOVING TARGET %d' % t.get_confidence())
+                        #t.remove_target.emit()
+                else:
+                    if(t.get_confidence() > ADLCProcessor.TARGET_THRESHOLD):
+                        self.targets.append(t)
+                        self.new_target.emit(t)
                 return
         tgt = roi.Target(new_roi)
 
-        self.targets.append(tgt)
-        self.targets = sorted(self.targets, key=lambda x: x.get_confidence(), reverse=True) 
-        self.new_target.emit(tgt)
+        self.potential_targets.append(tgt)
+        self.potential_targets = sorted(self.potential_targets, key=lambda x: x.get_confidence(), reverse=True) 
 
 class ImageProcessorConnector(QObject):
 
