@@ -17,6 +17,7 @@ class MainWindow(QMainWindow):
         self.processor = ADLCProcessor(flight_number = flight_number, check_interop=check_interop)
         self.processor.new_target.connect(self.new_target)
         self.processor.new_roi.connect(self.new_roi)
+        self.processor.processing_finished.connect(self.processing_finished)
 
     def initUI(self):
         self.roiDisplayScroll = QScrollArea(self)
@@ -58,9 +59,11 @@ class MainWindow(QMainWindow):
     def new_roi(self, roi):
         self.roiLayout.addWidget(ROICanvas(roi))
 
+    def processing_finished(self):
+        QApplication.quit()
+
     def saveImages(self):
         saveDirectory = str(QFileDialog.getExistingDirectory(self, "Select a directory to save the output in..."))
-
         try:
             if not os.path.isdir(saveDirectory + "/targets"):
                 os.mkdir(saveDirectory + "/targets")

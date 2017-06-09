@@ -33,6 +33,5 @@ class ClassifyTest(unittest.TestCase):
                         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                         self.assertEqual(classify.classify_shape(image)[0][1], directory)
 
-
 if __name__ == '__main__':
     unittest.main()

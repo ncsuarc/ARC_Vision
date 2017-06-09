@@ -13,10 +13,15 @@ from interop import InterOp
 
 from PyQt5.QtCore import (QObject, QRunnable, QThreadPool, QTimer, QSettings, pyqtSignal)
 
+import time
+
+current_milli_time = lambda: int(round(time.time() * 1000))
+
 class ADLCProcessor(QObject):
 
     new_roi = pyqtSignal('PyQt_PyObject')
     new_target = pyqtSignal('PyQt_PyObject')
+    processing_finished = pyqtSignal()
 
     def __init__(self, flight_number=0, threads=4, check_interop=True):
         super(ADLCProcessor, self).__init__()
@@ -70,6 +75,8 @@ class ADLCProcessor(QObject):
             self.search_grid = ogr.Geometry(ogr.wkbPolygon)  
             self.search_grid.AddGeometry(ring)
 
+        self.last_image_time = current_milli_time()
+
     def cleanup(self):
         print('ADLC Processor cleaning up...')
         self.pool.waitForDone()
@@ -104,9 +111,21 @@ class ADLCProcessor(QObject):
                         point.AddPoint(*coord)
                         if(self.search_grid.Contains(point)):
                             self.startImageProcessing(image)
+                            self.checkProcessingFinished()
                             return
             else:
                 self.startImageProcessing(self.images.popleft())
+            self.checkProcessingFinished()
+    
+    def checkProcessingFinished(self):
+        if len(self.images) == 0:
+            print('Queue empty')
+            delta_t = current_milli_time() - self.last_image_time
+            if delta_t > 60000: #One minute without new images
+                self.processing_finished.emit()
+            return
+        else:
+            self.last_image_time = current_milli_time()
 
     def startImageProcessing(self, image):
         processor = ImageProcessor(image, self.processingFinished, self.newTarget)
@@ -189,8 +208,12 @@ if __name__=="__main__":
         global roi_count
         roi_count += 1
 
+    def finished():
+        QCoreApplication.quit()
+
     processor.new_target.connect(new_target)
     processor.new_roi.connect(new_roi)
+    processor.processing_finished.connect(finished)
 
     app.exec_()
 
