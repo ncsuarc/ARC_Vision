@@ -59,8 +59,12 @@ class ADLCProcessor(QObject):
             password = settings.value('password')
             io = InterOp(username, password, ip, port)
             missions = io.get_missions()
+            for mission in missions:
+                if bool(mission.get('active')):
+                    active_mission = mission
+                    break
+            interop_grid_points = active_mission.get('search_grid_points')
 
-            interop_grid_points = missions[1].get('search_grid_points')
             grid_points = [None] * len(interop_grid_points)
 
             for point in interop_grid_points: 
@@ -115,7 +119,7 @@ class ADLCProcessor(QObject):
                             return
             else:
                 self.startImageProcessing(self.images.popleft())
-            self.checkProcessingFinished()
+        self.checkProcessingFinished()
     
     def checkProcessingFinished(self):
         if len(self.images) == 0:
