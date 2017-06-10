@@ -9,8 +9,8 @@ from PyQt5.QtCore import QObject, pyqtSignal
 class Target(QObject):
 
     MIN_DISTANCE = 100
-    MIN_MATCHES = 3
-    MATCH_THRESHOLD = 0.70
+    MIN_MATCHES = 5
+    MATCH_THRESHOLD = 0.60
 
     bf = cv2.BFMatcher()
 

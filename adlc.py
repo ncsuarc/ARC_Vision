@@ -154,7 +154,7 @@ class ADLCProcessor(QObject):
                         print('REMOVING TARGET %d' % t.get_confidence())
                         #t.remove_target.emit()
                 else:
-                    if(t.get_confidence() > ADLCProcessor.TARGET_THRESHOLD):
+                    if(t.get_confidence() >= ADLCProcessor.TARGET_THRESHOLD):
                         self.targets.append(t)
                         self.new_target.emit(t)
                 return

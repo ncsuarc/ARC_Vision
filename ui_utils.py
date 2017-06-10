@@ -71,7 +71,8 @@ class TargetCanvas(QWidget):
         self.setMinimumHeight(70)
         self.setMinimumWidth(70)
 
-        self.setImage(target.rois[0])
+        self.n = 0
+        self.setImage(target.rois[self.n])
 
         self.target.remove_target.connect(self.scheduleDeleteWidget)
 
@@ -86,6 +87,14 @@ class TargetCanvas(QWidget):
         self.qImage = cvImgToQImg(cv2.resize(image, (new_width, new_height)))
         self.qImageShape = cvImgToQImg(cv2.resize(roi.shape_img, (new_width, new_height)))
         self.qImageChar = cvImgToQImg(cv2.resize(roi.alphanumeric_img, (new_width, new_height)))
+
+    def mousePressEvent(self, evt):
+        super(TargetCanvas, self).mousePressEvent(evt)
+        self.n += 1
+        if self.n == len(self.target.rois):
+            self.n = 0
+        self.setImage(self.target.rois[self.n])
+        self.repaint()
 
     def paintEvent(self, evt):
         painter = QPainter()
