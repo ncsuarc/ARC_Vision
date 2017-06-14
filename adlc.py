@@ -9,7 +9,7 @@ import os
 
 from collections import deque
 from osgeo import ogr
-from interop import InterOp
+from ARC.interop import Interop
 
 from PyQt5.QtCore import (QObject, QRunnable, QThreadPool, QTimer, QSettings, pyqtSignal)
 
@@ -56,12 +56,7 @@ class ADLCProcessor(QObject):
         self.check_interop = check_interop
 
         if self.check_interop:
-            settings = QSettings("ARC", "PCC Interop Plugin")
-            ip = settings.value('host')
-            port = settings.value('port')
-            username = settings.value('username')
-            password = settings.value('password')
-            io = InterOp(username, password, ip, port)
+            io = Interop()
             missions = io.get_missions()
             for mission in missions:
                 if bool(mission.get('active')):
@@ -148,15 +143,9 @@ class ADLCProcessor(QObject):
         self.new_roi.emit(new_roi)
         for t in self.potential_targets:
             if t.is_duplicate(new_roi):
-                if t in self.targets:
-                    if(t.get_confidence() > ADLCProcessor.TARGET_OVERLOAD):
-                        #self.targets.remove(t)
-                        print('REMOVING TARGET %d' % t.get_confidence())
-                        #t.remove_target.emit()
-                else:
-                    if(t.get_confidence() >= ADLCProcessor.TARGET_THRESHOLD):
-                        self.targets.append(t)
-                        self.new_target.emit(t)
+                if not t in self.targets and (t.get_confidence() >= ADLCProcessor.TARGET_THRESHOLD):
+                    self.targets.append(t)
+                    self.new_target.emit(t)
                 return
         tgt = roi.Target(new_roi)
 
