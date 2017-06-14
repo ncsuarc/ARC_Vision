@@ -1,10 +1,41 @@
 import cv2
 import numpy as np
-from math import radians, cos, sin, asin, sqrt
+from math import radians, cos, sin, asin, sqrt, pi
 import filters
 import classify
 
 from PyQt5.QtCore import QObject, pyqtSignal
+import json
+
+directions = {'N': 0, 'NE': 45, 'E': 90, 'SE': 135,
+              'S': 180, 'SW': 225, 'W': 270, 'NW': 315,
+              'N': 360}
+
+colors = {'white':(255,255,255), 'black':(0,0,0), 'gray':(128,128,128),
+        'red':(255,0,0), 'blue':(0,0,255), 'green':(0,255,0), 'yellow':(255,255,0),
+        'purple':(128,0,128), 'brown':(165,42,42), 'orange':(255,165,0)}
+
+def orientation2direction(orientation):
+    min_dist = 360
+    min_dir = None
+
+    for direction, angle in directions.items():
+        dist = abs(orientation-angle)
+        if dist < min_dist:
+            min_dist = dist
+            min_dir = direction
+
+    return min_dir
+
+def color_to_name(color):
+    min_colors = {}
+    for name, color_value in colors.items():
+        r_c, g_c, b_c = color_value
+        rd = (r_c - color[0]) ** 2
+        gd = (g_c - color[1]) ** 2
+        bd = (b_c - color[2]) ** 2
+        min_colors[(rd + gd + bd)] = name
+    return min_colors[min(min_colors.keys())]
 
 class Target(QObject):
 
@@ -22,6 +53,7 @@ class Target(QObject):
         self.nadired_rois = []
         self.alphanumerics = {}
         self.shapes = {}
+        self.submitted = False
 
         self._total_lat = 0
         self._total_lon = 0
@@ -35,6 +67,46 @@ class Target(QObject):
 
     def get_alphanumeric(self):
         return sorted(list(self.alphanumerics.items()), key = lambda x: x[1], reverse = True)[0][0]
+
+    def get_shape_color(self):
+        total_color = [0, 0, 0]
+        for roi in self.rois:
+            total_color[0] += roi.shape_color[0]
+            total_color[1] += roi.shape_color[1]
+            total_color[2] += roi.shape_color[2]
+        color = (total_color[0]/len(self.rois), total_color[1]/len(self.rois), total_color[2]/len(self.rois))
+        return color_to_name(color)
+
+    def get_alphanumeric_color(self):
+        total_color = [0, 0, 0]
+        for roi in self.rois:
+            total_color[0] += roi.alphanumeric_color[0]
+            total_color[1] += roi.alphanumeric_color[1]
+            total_color[2] += roi.alphanumeric_color[2]
+        color = (total_color[0]/len(self.rois), total_color[1]/len(self.rois), total_color[2]/len(self.rois))
+        return color_to_name(color)
+
+
+    def get_orientation(self):
+        orientation = 0
+        for roi in self.rois:
+            orientation += roi.orientation
+        return orientation / len(self.rois)
+
+    def get_target_info_dict(self):
+        return {'type':'standard', 'latitude': self.coord[0], 'longitude': self.coord[1], 'orientation': orientation2direction(self.get_orientation()),
+		'shape': self.get_shape(), 'background_color': self.get_shape_color(), 'alphanumeric': self.get_alphanumeric(), 'alphanumeric_color': self.get_alphanumeric_color()}
+
+    def submit_to_interop(self, io, name):
+        if self.submitted:
+            return
+        self.submitted = True
+        json_data = self.get_target_info_dict()
+        with open(name+'.json', 'w') as json_file:
+            json.dump(json_data, json_file)
+        cv2.imwrite(name+'.jpg', cv2.cvtColor(self.rois[0].thumbnail, cv2.COLOR_BGR2RGB))
+        with open(name+'.jpg', 'rb') as image_file:
+            io.post_target(json_data, image_file)
 
     def add_roi(self, roi):
         self.rois.append(roi)
@@ -134,6 +206,8 @@ class ROI():
         if not self.validate():
             raise ValueError("Failed validation test.")
         
+        self.orientation = self.arc_image.heading * (180/pi) #TODO Calculate character rotation
+
         #This will rescale the image from 0-255 to 128-255
         #As a result, black targets will have color values as 128, as opposed to 0
         sub_image = rescale_img_values(self.thumbnail)
@@ -178,6 +252,8 @@ class ROI():
     def classify(self):
         try:
             ((self.shape_mask, self.shape_color), (self.alphanumeric_mask, self.alphanumeric_color)) = classify.get_target_info(self.roi)
+            self.shape_color = descale_color_value(self.shape_color)
+            self.alphanumeric_color = descale_color_value(self.alphanumeric_color)
             self.shape_img = classify.draw_mask_color(self.shape_mask, self.shape_color)
             self.alphanumeric_img = classify.draw_mask_color(self.alphanumeric_mask, self.alphanumeric_color)
         except IndexError:

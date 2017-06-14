@@ -56,8 +56,8 @@ class ADLCProcessor(QObject):
         self.check_interop = check_interop
 
         if self.check_interop:
-            io = Interop()
-            missions = io.get_missions()
+            self.io = Interop()
+            missions = self.io.get_missions()
             for mission in missions:
                 if bool(mission.get('active')):
                     active_mission = mission
@@ -124,11 +124,23 @@ class ADLCProcessor(QObject):
         if len(self.images) == 0:
             print('Queue empty')
             delta_t = current_milli_time() - self.last_image_time
-            if delta_t > 60000: #One minute without new images
+            if delta_t > 120 * 1000: #Two minutes without new images
+                if(self.check_interop):
+                    self.submit_to_interop()
                 self.processing_finished.emit()
             return
         else:
             self.last_image_time = current_milli_time()
+
+    def submit_to_interop(self):
+        outdir = os.path.join(self.flight.folder, 'adlc')
+        try:
+            os.mkdir(outdir)
+        except Exception as e:
+            pass
+        for number, target in zip(range(len(self.targets)), self.targets):
+            print('Submitting')
+            target.submit_to_interop(self.io, os.path.join(outdir, str(number+1)))
 
     def startImageProcessing(self, image):
         processor = ImageProcessor(image, self.processingFinished, self.newTarget)
