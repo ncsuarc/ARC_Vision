@@ -1,14 +1,14 @@
-import ARC.nn
+from .nn import Model
 
 import numpy as np
 import cv2
 
 print("Loading False Positive model...")
-fp_model = ARC.nn.Model('models/false_positive')
+fp_model = Model('models/false_positive')
 print("Loading Shape model...")
-shape_model = ARC.nn.Model('models/shape')
+shape_model = Model('models/shape')
 print("Loading Alphanumeric model...")
-alphanumeric_model = ARC.nn.Model('models/alphanumeric')
+alphanumeric_model = Model('models/alphanumeric')
 
 def check_targets(images):
     labels = fp_model.test([cv2.resize(image, (64, 64)).flatten() for image in images])
