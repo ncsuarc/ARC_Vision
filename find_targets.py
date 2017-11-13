@@ -52,7 +52,7 @@ class MainWindow(QWidget):
             #Remove duplicate files
             self.images = list(dict((image.filename, image) for image in self.images).values())
 
-            image_filenames = [image.filename for image in self.images] 
+            image_filenames = [image.filename for image in self.images]
             #Create ADLC Processor
             self.other_processor = adlc.ADLCProcessor(flight_number=flight_number)
             #Prevent the processor from starting
@@ -84,7 +84,7 @@ class MainWindow(QWidget):
         self.roiLayout = QGridLayout()
         self.roiDisplay.setLayout(self.roiLayout)
         self.roiDisplayScroll.setWidget(self.roiDisplay)
-        
+
         nextButton = QPushButton("Next")
         nextButton.clicked.connect(self.nextImage)
 
@@ -96,7 +96,7 @@ class MainWindow(QWidget):
         ctl.addWidget(self.flagButton)
         ctl.addStretch(1)
         ctl.addWidget(nextButton)
-        
+
         vbox = QVBoxLayout()
         vbox.addLayout(ctl)
         vbox.addWidget(self.imageCanvas)
@@ -107,7 +107,7 @@ class MainWindow(QWidget):
 
         self.setLayout(hbox)
 
-    def nextImage(self): 
+    def nextImage(self):
         self.n += 1
         if self.n >= len(self.images) - 1:
             QApplication.quit()
@@ -124,7 +124,7 @@ class MainWindow(QWidget):
         cv2.imwrite(self.saveDirectory + "/thumbnail/fp/f{}.jpg".format(self.fp_n - 1), roi.thumbnail)
 
     def update_images(self):
-        for i in reversed(range(self.roiLayout.count())): 
+        for i in reversed(range(self.roiLayout.count())):
             local_widget = self.roiLayout.itemAt(i).widget()
             if(local_widget.target):
                 self.t_n += 1
@@ -134,7 +134,7 @@ class MainWindow(QWidget):
                 self.fp_n += 1
                 local_widget.saveRoiImage(self.saveDirectory + "/fp/f{}.jpg".format(self.fp_n - 1))
                 local_widget.saveThumbnailImage(self.saveDirectory + "/thumbnail/fp/f{}.jpg".format(self.fp_n - 1))
-                
+
             self.roiLayout.itemAt(i).widget().setParent(None)
 
         if self.image_flagged:
@@ -157,7 +157,7 @@ class MainWindow(QWidget):
             if x > 2:
                 x = 0
                 y += 1
-            
+
         self.imageCanvas.setImage(cv2.imread(self.images[self.n].filename[:-3] + 'lowquality.jpg'))
         self.update()
 
@@ -171,7 +171,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Search flight images for targets.')
     parser.add_argument("-i", "--input_flight", help="Flight number to search")
     args = parser.parse_args()
-    
+
     app = QApplication(sys.argv)
     if args.input_flight:
         w = MainWindow(flight_number=args.input_flight)

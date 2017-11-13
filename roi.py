@@ -110,7 +110,7 @@ class Target(QObject):
 
     def add_roi(self, roi):
         self.rois.append(roi)
-        
+
         if len(self.rois) == 1:
             self.coord = roi.coord
 
@@ -172,10 +172,10 @@ class ROI():
         x, y, w, h = cv2.boundingRect(cnt)
         self.real_width = w*arc_image.width_m_per_px
         self.real_height = h*arc_image.height_m_per_px
-        
+
         if not ((ROI.MIN_WIDTH <= self.real_width <= ROI.MAX_WIDTH) and (ROI.MIN_HEIGHT <= self.real_height <= ROI.MAX_HEIGHT)):
             raise ValueError("Failed size test.")
-        
+
         roi_mask = np.zeros(image.shape[0:2], np.uint8)
         cv2.drawContours(roi_mask, [cnt], 0, 255, -1)
 
@@ -196,7 +196,7 @@ class ROI():
 
         #Find the target contour
         contours = filters.get_contours(roi_mask, goal=1)
-        
+
         if(len(contours) == 0):
             raise ValueError("Failed contour test.")
 
@@ -205,7 +205,7 @@ class ROI():
 
         if not self.validate():
             raise ValueError("Failed validation test.")
-        
+
         self.orientation = self.arc_image.heading * (180/pi) #TODO Calculate character rotation
 
         #This will rescale the image from 0-255 to 128-255
@@ -213,7 +213,7 @@ class ROI():
         sub_image = rescale_img_values(self.thumbnail)
         #Now, when the mask is applied, black values are at 128, and the background is 0
         self.roi = cv2.bitwise_and(sub_image, sub_image, mask=roi_mask)
-        
+
         M = cv2.moments(self.cnt)
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
@@ -246,7 +246,7 @@ class ROI():
 
         if not (0.3 < self.ar < 3):
             return False
-        
+
         return True
 
     def classify(self):
@@ -269,9 +269,9 @@ def order_points(pts):
     tr = pts[np.argmin(diff)]
     br = pts[np.argmax(s)]
     bl = pts[np.argmax(diff)]
-    
+
     return (tl, tr, br, bl)
-    
+
 def cartesian_dist(pt1, pt2):
     x1, y1 = pt1
     x2, y2 = pt2
@@ -279,17 +279,17 @@ def cartesian_dist(pt1, pt2):
 
 def haversine(pt1, pt2):
     """
-    Calculate the great circle distance between two points 
+    Calculate the great circle distance between two points
     on the earth (specified in decimal degrees)
     Returns: the distance between the two points in meters.
     """
-    # convert decimal degrees to radians 
+    # convert decimal degrees to radians
     lon1, lat1, lon2, lat2 = map(radians, [pt1[1], pt1[0], pt2[1], pt2[0]])
-    # haversine formula 
-    dlon = lon2 - lon1 
-    dlat = lat2 - lat1 
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
     a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-    c = 2 * asin(sqrt(a)) 
+    c = 2 * asin(sqrt(a))
     m = 6371008 * c
     return m
 

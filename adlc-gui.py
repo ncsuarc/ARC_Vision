@@ -105,7 +105,7 @@ if __name__=="__main__":
     parser.add_argument("--no-interop", action="store_true")
     parser.add_argument("--no-quit", action="store_true")
     args = parser.parse_args()
-    
+
     app = QApplication(sys.argv)
     w = MainWindow(flight_number=args.input_flight, check_interop=(not args.no_interop), quit=(not args.no_quit))
     w.resize(1600, 900)

@@ -43,16 +43,16 @@ class ADLCProcessor(QObject):
         self.pool = QThreadPool.globalInstance()
         self.pool.setMaxThreadCount(threads)
 
-        self.images = deque(self.flight.all_images()) 
+        self.images = deque(self.flight.all_images())
 
         self.queueCount = 0
-        
+
         self.rois = []
         self.targets = []
         self.potential_targets = []
 
         atexit.register(self.cleanup)
-        
+
         self.check_interop = check_interop
 
         if self.check_interop:
@@ -66,7 +66,7 @@ class ADLCProcessor(QObject):
 
             grid_points = [None] * len(interop_grid_points)
 
-            for point in interop_grid_points: 
+            for point in interop_grid_points:
                 grid_points[point.get('order') - 1] = (point.get('latitude'), point.get('longitude'))
 
             ring = ogr.Geometry(ogr.wkbLinearRing)
@@ -75,7 +75,7 @@ class ADLCProcessor(QObject):
                 ring.AddPoint(point[0], point[1])
 
             ring.AddPoint(grid_points[0][0], grid_points[0][1])
-            self.search_grid = ogr.Geometry(ogr.wkbPolygon)  
+            self.search_grid = ogr.Geometry(ogr.wkbPolygon)
             self.search_grid.AddGeometry(ring)
 
         self.last_image_time = current_milli_time()
@@ -119,7 +119,7 @@ class ADLCProcessor(QObject):
             else:
                 self.startImageProcessing(self.images.popleft())
         self.checkProcessingFinished()
-    
+
     def checkProcessingFinished(self):
         if len(self.images) == 0:
             print('Queue empty')
@@ -172,10 +172,10 @@ class ImageProcessorConnector(QObject):
     def __init__(self):
         super(ImageProcessorConnector, self).__init__()
 
-class ImageProcessor(QRunnable): 
+class ImageProcessor(QRunnable):
     def __init__(self, image, finished_callback, new_target_callback):
         super(ImageProcessor, self).__init__()
-        
+
         self.setAutoDelete(True)
 
         self.image = image
