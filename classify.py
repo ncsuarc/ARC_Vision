@@ -1,4 +1,4 @@
-from .nn import Model
+from nn import Model
 
 import numpy as np
 import cv2
